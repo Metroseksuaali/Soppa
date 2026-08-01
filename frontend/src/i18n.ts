@@ -7,7 +7,8 @@
 
 export const t = {
   app: {
-    name: 'Catering-inventaario',
+    name: 'Soppa',
+    tagline: 'Catering-varastonhallinta',
     unknownError: 'Tuntematon virhe',
   },
 

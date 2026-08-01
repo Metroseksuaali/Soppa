@@ -9,9 +9,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
       manifest: {
-        name: 'Catering-inventaario',
-        short_name: 'Catering',
-        description: 'Catering-tiimin varastonhallinta',
+        name: 'Soppa — Catering-varastonhallinta',
+        short_name: 'Soppa',
+        description: 'Soppa: catering-tiimin varastonhallinta',
         theme_color: '#0f766e',
         background_color: '#ffffff',
         display: 'standalone',

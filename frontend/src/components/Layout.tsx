@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { api, EventRow } from '../api';
 import { useAuth } from '../auth';
 import { t } from '../i18n';
+import { PotLogo } from './PotLogo';
 
 const navItems = [
   { to: '/', label: t.nav.home, icon: '🏠', end: true },
@@ -36,10 +37,15 @@ export function Layout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-full flex flex-col max-w-2xl mx-auto bg-slate-100">
       <header className="sticky top-0 z-10 bg-brand text-white px-4 py-3 flex items-center justify-between shadow-md">
-        <div className="min-w-0">
-          <div className="text-xs opacity-80">{t.header.activeEvent}</div>
-          <div className="font-semibold truncate">
-            {activeEvent ? activeEvent.name : t.header.noActiveEvent}
+        <div className="flex items-center gap-2.5 min-w-0">
+          <PotLogo className="h-9 w-9 shrink-0 text-white" />
+          <div className="min-w-0">
+            <div className="text-[11px] uppercase tracking-wide opacity-80 leading-tight">
+              {t.app.name} · {t.header.activeEvent}
+            </div>
+            <div className="font-semibold truncate leading-tight">
+              {activeEvent ? activeEvent.name : t.header.noActiveEvent}
+            </div>
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
