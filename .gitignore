@@ -1,0 +1,68 @@
+# ---------------------------------------------------------------------------
+# Salaisuudet & ympäristö  — EI KOSKAAN Gitiin
+# ---------------------------------------------------------------------------
+# .env sisältää tuotantosalasanat, JWT_SECRETin ja tietokantatunnukset.
+.env
+.env.*
+!.env.example
+*.env
+secrets/
+*.secret
+*.key
+*.pem
+*.p12
+*.pfx
+
+# ---------------------------------------------------------------------------
+# Tietokannan varmuuskopiot & data  — sisältävät oikeaa käyttödataa
+# ---------------------------------------------------------------------------
+backups/
+*.sql.gz
+*.dump
+pgdata/
+*.sqlite
+*.sqlite3
+
+# Caddy-TLS-tila (sisältää yksityisiä avaimia jos tuotu volumeista)
+caddy_data/
+caddy_config/
+
+# ---------------------------------------------------------------------------
+# Riippuvuudet & buildit
+# ---------------------------------------------------------------------------
+node_modules/
+dist/
+build/
+.vite/
+*.tsbuildinfo
+
+# Vite PWA -generoidut tiedostot (syntyvät buildissa)
+frontend/dev-dist/
+sw.js
+workbox-*.js
+
+# ---------------------------------------------------------------------------
+# Lokit
+# ---------------------------------------------------------------------------
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+
+# ---------------------------------------------------------------------------
+# Editorit & käyttöjärjestelmä
+# ---------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*~
+
+# ---------------------------------------------------------------------------
+# Väliaikaiset
+# ---------------------------------------------------------------------------
+tmp/
+temp/
+*.tmp

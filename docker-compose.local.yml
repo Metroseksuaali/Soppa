@@ -1,0 +1,7 @@
+# Paikallinen testiajo ilman Caddyä/TLS:ää: julkaisee app-portin selaimeen.
+# Käyttö:  docker compose -f docker-compose.yml -f docker-compose.local.yml up -d db app
+# Selain:  http://localhost:8080
+services:
+  app:
+    ports:
+      - '8080:8080'

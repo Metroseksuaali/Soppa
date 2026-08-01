@@ -1,0 +1,13 @@
+# Normalisoi rivinvaihdot: repo säilyttää LF:n riippumatta käyttöjärjestelmästä.
+# Tämä estää CRLF-ongelmat kun sovellus ajetaan Linux-Docker-hostilla.
+* text=auto eol=lf
+
+# Shell-skriptit AINA LF (CRLF rikkoisi ne Linuxissa: "bad interpreter").
+*.sh text eol=lf
+
+# Binääritiedostot — älä koske.
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff binary
+*.woff2 binary
