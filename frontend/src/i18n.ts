@@ -145,6 +145,7 @@ export const t = {
     balance: (val: string) => `Saldo: ${val}`,
     change: 'Vaihda',
     noMatches: 'Ei osumia.',
+    noReturnable: 'Ei palautuvia (vietäviä) tuotteita.',
     step2Action: '2. Toiminto',
     step3Counted: (unit: string) => `3. Laskettu määrä (${unit})`,
     currentBalance: (val: string) => `Nykysaldo: ${val}`,

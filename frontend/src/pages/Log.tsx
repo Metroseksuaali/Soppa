@@ -102,8 +102,11 @@ export function LogPage() {
     },
   });
 
-  const filteredItems = (items ?? []).filter((i) =>
-    i.name.toLowerCase().includes(search.toLowerCase())
+  // Vienti/palautus koskee vain palautuvia tuotteita → suodata tuotelista niihin.
+  const filteredItems = (items ?? []).filter(
+    (i) =>
+      i.name.toLowerCase().includes(search.toLowerCase()) &&
+      (!actionCfg.returnableOnly || i.returnable)
   );
 
   const canSubmit =
@@ -165,7 +168,11 @@ export function LogPage() {
                   <span className="text-sm text-slate-500">{fmtNum(i.stock)} {i.unit}</span>
                 </button>
               ))}
-              {filteredItems.length === 0 && <div className="text-slate-400 text-sm py-3">{t.log.noMatches}</div>}
+              {filteredItems.length === 0 && (
+                <div className="text-slate-400 text-sm py-3">
+                  {actionCfg.returnableOnly && search === '' ? t.log.noReturnable : t.log.noMatches}
+                </div>
+              )}
             </div>
           </div>
         )}
