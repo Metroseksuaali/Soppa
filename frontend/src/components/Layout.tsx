@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api, EventRow } from '../api';
@@ -15,6 +15,18 @@ const navItems = [
 export function Layout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'));
+
+  function toggleTheme() {
+    const next = !document.documentElement.classList.contains('dark');
+    document.documentElement.classList.toggle('dark', next);
+    try {
+      localStorage.setItem('catering_theme', next ? 'dark' : 'light');
+    } catch {
+      /* localStorage voi olla estetty — teema toimii silti istunnon ajan */
+    }
+    setDark(next);
+  }
 
   const { data: activeEvent } = useQuery({
     queryKey: ['events', 'active'],
@@ -32,6 +44,14 @@ export function Layout({ children }: { children: ReactNode }) {
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <span className="text-sm opacity-90 hidden sm:inline">{user?.display_name}</span>
+          <button
+            onClick={toggleTheme}
+            aria-label={t.header.toggleTheme}
+            title={t.header.toggleTheme}
+            className="text-base bg-white/15 hover:bg-white/25 rounded-lg px-2.5 py-1.5 leading-none"
+          >
+            {dark ? '☀️' : '🌙'}
+          </button>
           <button
             onClick={async () => {
               await logout();

@@ -24,6 +24,7 @@ export const t = {
     activeEvent: 'Aktiivinen tapahtuma',
     noActiveEvent: 'Ei aktiivista tapahtumaa',
     logout: 'Kirjaudu ulos',
+    toggleTheme: 'Vaihda vaalea/tumma teema',
   },
 
   // Yleiset, monessa paikassa käytetyt
