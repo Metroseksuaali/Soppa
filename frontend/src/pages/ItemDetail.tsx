@@ -40,7 +40,7 @@ export function ItemDetailPage() {
   if (!data) return null;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 md:max-w-2xl">
       <Link to="/inventaario" className="text-brand text-sm font-medium">
         {t.common.back}
       </Link>

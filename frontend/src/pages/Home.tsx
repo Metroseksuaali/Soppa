@@ -51,7 +51,7 @@ export function HomePage() {
 
       <div>
         <h2 className="text-sm font-semibold text-slate-500 mb-2 px-1">{t.home.quickActions}</h2>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
           {quickActions.map((a) => (
             <Link
               key={a.action}

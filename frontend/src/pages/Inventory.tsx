@@ -56,7 +56,7 @@ export function InventoryPage() {
         <div className="text-center text-slate-400 py-10">{t.inventory.empty}</div>
       )}
 
-      <ul className="space-y-2">
+      <ul className="grid gap-2 sm:grid-cols-2">
         {data?.map((item) => (
           <li key={item.id}>
             <Link to={`/inventaario/${item.id}`} className="card p-4 flex items-center justify-between">

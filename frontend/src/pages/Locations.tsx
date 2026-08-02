@@ -28,7 +28,7 @@ export function LocationsPage() {
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 md:max-w-2xl">
       <Link to="/" className="text-brand text-sm font-medium">{t.common.backHome}</Link>
       <h1 className="text-xl font-bold">{t.locations.title}</h1>
 

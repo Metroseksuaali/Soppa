@@ -12,12 +12,15 @@ export const t = {
     unknownError: 'Tuntematon virhe',
   },
 
-  // Alapalkin navigaatio
+  // Navigaatio (mobiilin alapalkki + työpöydän sivupalkki)
   nav: {
     home: 'Etusivu',
     inventory: 'Inventaario',
     log: 'Kirjaa',
     reports: 'Raportit',
+    locations: 'Sijainnit',
+    events: 'Tapahtumat',
+    users: 'Käyttäjät',
   },
 
   // Yläpalkki
