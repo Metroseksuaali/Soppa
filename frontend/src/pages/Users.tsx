@@ -20,7 +20,7 @@ export function UsersPage() {
   });
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 md:max-w-2xl">
       <Link to="/" className="text-brand text-sm font-medium">{t.common.backHome}</Link>
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">{t.users.title}</h1>

@@ -117,7 +117,7 @@ export function LogPage() {
   if (itemsLoading) return <Spinner />;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 md:max-w-xl">
       <h1 className="text-xl font-bold">{t.log.title}</h1>
 
       {done && (
