@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api, EventRow, EventReport, ConsumptionRow } from '../api';
+import { Download } from 'lucide-react';
 import { Spinner, ErrorMsg } from '../components/ui';
 import { fmtQty, fmtNum, fmtDate } from '../lib/format';
 import { t } from '../i18n';
@@ -104,7 +105,8 @@ export function ReportsPage() {
         <>
           <div className="flex justify-between items-center">
             <h2 className="font-semibold">{report.event.name}</h2>
-            <button className="btn-secondary py-2 px-3 text-sm" onClick={exportCsv}>
+            <button className="btn-secondary inline-flex items-center gap-1.5 py-2 px-3 text-sm" onClick={exportCsv}>
+              <Download className="w-4 h-4" />
               {t.reports.exportCsv}
             </button>
           </div>

@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { Plus, Upload, Download, Utensils, ClipboardList, Warehouse, MapPin, Calendar, Users } from 'lucide-react';
 import { api, EventRow, StockRow } from '../api';
 import { useAuth } from '../auth';
 import { Spinner } from '../components/ui';
@@ -7,11 +8,11 @@ import { fmtQty } from '../lib/format';
 import { t } from '../i18n';
 
 const quickActions = [
-  { action: 'lisays', label: t.home.actions.lisays, icon: '➕', color: 'bg-emerald-600' },
-  { action: 'vienti', label: t.home.actions.vienti, icon: '📤', color: 'bg-sky-600' },
-  { action: 'palautus', label: t.home.actions.palautus, icon: '📥', color: 'bg-indigo-600' },
-  { action: 'kulutus', label: t.home.actions.kulutus, icon: '🍽️', color: 'bg-rose-600' },
-  { action: 'inventointi', label: t.home.actions.inventointi, icon: '🔢', color: 'bg-amber-600' },
+  { action: 'lisays', label: t.home.actions.lisays, icon: Plus, color: 'bg-emerald-600' },
+  { action: 'vienti', label: t.home.actions.vienti, icon: Upload, color: 'bg-sky-600' },
+  { action: 'palautus', label: t.home.actions.palautus, icon: Download, color: 'bg-indigo-600' },
+  { action: 'kulutus', label: t.home.actions.kulutus, icon: Utensils, color: 'bg-rose-600' },
+  { action: 'inventointi', label: t.home.actions.inventointi, icon: ClipboardList, color: 'bg-amber-600' },
 ];
 
 export function HomePage() {
@@ -52,21 +53,24 @@ export function HomePage() {
       <div>
         <h2 className="text-sm font-semibold text-slate-500 mb-2 px-1">{t.home.quickActions}</h2>
         <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-          {quickActions.map((a) => (
-            <Link
-              key={a.action}
-              to={`/kirjaa?action=${a.action}`}
-              className={`${a.color} text-white rounded-2xl p-4 flex flex-col items-center gap-1 shadow-sm active:scale-[0.98] transition`}
-            >
-              <span className="text-2xl">{a.icon}</span>
-              <span className="font-semibold text-sm">{a.label}</span>
-            </Link>
-          ))}
+          {quickActions.map((a) => {
+            const Icon = a.icon;
+            return (
+              <Link
+                key={a.action}
+                to={`/kirjaa?action=${a.action}`}
+                className={`${a.color} text-white rounded-2xl p-4 flex flex-col items-center gap-1 shadow-sm active:scale-[0.98] transition`}
+              >
+                <Icon className="w-7 h-7" />
+                <span className="font-semibold text-sm">{a.label}</span>
+              </Link>
+            );
+          })}
           <Link
             to="/inventaario"
             className="bg-slate-700 text-white rounded-2xl p-4 flex flex-col items-center gap-1 shadow-sm active:scale-[0.98] transition"
           >
-            <span className="text-2xl">📦</span>
+            <Warehouse className="w-7 h-7" />
             <span className="font-semibold text-sm">{t.home.warehouse}</span>
           </Link>
         </div>
@@ -91,14 +95,17 @@ export function HomePage() {
       )}
 
       <div className="grid grid-cols-2 gap-3">
-        <Link to="/sijainnit" className="card p-4 text-center font-medium text-slate-700">
+        <Link to="/sijainnit" className="card p-4 flex items-center justify-center gap-2 font-medium text-slate-700">
+          <MapPin className="w-5 h-5 text-slate-500" />
           {t.home.locations}
         </Link>
-        <Link to="/tapahtumat" className="card p-4 text-center font-medium text-slate-700">
+        <Link to="/tapahtumat" className="card p-4 flex items-center justify-center gap-2 font-medium text-slate-700">
+          <Calendar className="w-5 h-5 text-slate-500" />
           {t.home.events}
         </Link>
         {user?.is_admin && (
-          <Link to="/kayttajat" className="card p-4 text-center font-medium text-slate-700 col-span-2">
+          <Link to="/kayttajat" className="card p-4 flex items-center justify-center gap-2 font-medium text-slate-700 col-span-2">
+            <Users className="w-5 h-5 text-slate-500" />
             {t.home.users}
           </Link>
         )}

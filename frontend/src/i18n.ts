@@ -33,8 +33,8 @@ export const t = {
 
   // Yleiset, monessa paikassa käytetyt
   common: {
-    back: '← Takaisin',
-    backHome: '← Etusivu',
+    back: 'Takaisin',
+    backHome: 'Etusivu',
     edit: 'Muokkaa',
     save: 'Tallenna',
     saving: 'Tallennetaan…',
@@ -93,9 +93,9 @@ export const t = {
     quickActions: 'Pikatoiminnot',
     warehouse: 'Varasto',
     outOfStock: 'Loppu varastosta',
-    locations: '📍 Sijainnit',
-    events: '📅 Tapahtumat',
-    users: '👤 Käyttäjät',
+    locations: 'Sijainnit',
+    events: 'Tapahtumat',
+    users: 'Käyttäjät',
     actions: {
       lisays: 'Lisää',
       vienti: 'Vie',
@@ -208,7 +208,7 @@ export const t = {
     chooseEvent: 'Valitse tapahtuma',
     activeSuffix: ' (aktiivinen)',
     choosePrompt: 'Valitse tapahtuma nähdäksesi raportin.',
-    exportCsv: '⬇ Vie CSV',
+    exportCsv: 'Vie CSV',
     perItem: 'Yhteenveto per tuote',
     noMovements: 'Ei kirjauksia tässä tapahtumassa.',
     added: 'Lisätty',

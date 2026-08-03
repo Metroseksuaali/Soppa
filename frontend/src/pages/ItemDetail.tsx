@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, ItemDetail } from '../api';
 import { Spinner, ErrorMsg, Modal, CategoryChip } from '../components/ui';
+import { ArrowLeft } from 'lucide-react';
 import { fmtQty, fmtDateTime, typeSign, fmtNum, parseNum } from '../lib/format';
 import { t } from '../i18n';
 
@@ -41,7 +42,8 @@ export function ItemDetailPage() {
 
   return (
     <div className="space-y-4 md:max-w-2xl">
-      <Link to="/inventaario" className="text-brand text-sm font-medium">
+      <Link to="/inventaario" className="inline-flex items-center gap-1 text-brand text-sm font-medium">
+        <ArrowLeft className="w-4 h-4" />
         {t.common.back}
       </Link>
 

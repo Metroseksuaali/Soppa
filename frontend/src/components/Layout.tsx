@@ -3,21 +3,22 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api, EventRow } from '../api';
 import { useAuth } from '../auth';
+import { Home, Package, Pencil, BarChart3, MapPin, Calendar, Users, Sun, Moon } from 'lucide-react';
 import { t } from '../i18n';
 import { PotLogo } from './PotLogo';
 
 // Mobiilin alapalkki näyttää nämä; työpöydän sivupalkki näyttää nämä + lisälinkit.
 const primaryNav = [
-  { to: '/', label: t.nav.home, icon: '🏠', end: true },
-  { to: '/inventaario', label: t.nav.inventory, icon: '📦', end: false },
-  { to: '/kirjaa', label: t.nav.log, icon: '✏️', end: false },
-  { to: '/raportit', label: t.nav.reports, icon: '📊', end: false },
+  { to: '/', label: t.nav.home, icon: Home, end: true },
+  { to: '/inventaario', label: t.nav.inventory, icon: Package, end: false },
+  { to: '/kirjaa', label: t.nav.log, icon: Pencil, end: false },
+  { to: '/raportit', label: t.nav.reports, icon: BarChart3, end: false },
 ];
 
 // Vain työpöydän sivupalkissa — mobiilissa nämä löytyvät etusivun korteista.
 const secondaryNav = [
-  { to: '/sijainnit', label: t.nav.locations, icon: '📍', end: false },
-  { to: '/tapahtumat', label: t.nav.events, icon: '📅', end: false },
+  { to: '/sijainnit', label: t.nav.locations, icon: MapPin, end: false },
+  { to: '/tapahtumat', label: t.nav.events, icon: Calendar, end: false },
 ];
 
 export function Layout({ children }: { children: ReactNode }) {
@@ -50,7 +51,7 @@ export function Layout({ children }: { children: ReactNode }) {
   const sidebarNav = [
     ...primaryNav,
     ...secondaryNav,
-    ...(user?.is_admin ? [{ to: '/kayttajat', label: t.nav.users, icon: '👤', end: false }] : []),
+    ...(user?.is_admin ? [{ to: '/kayttajat', label: t.nav.users, icon: Users, end: false }] : []),
   ];
 
   return (
@@ -68,21 +69,24 @@ export function Layout({ children }: { children: ReactNode }) {
         </div>
 
         <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
-          {sidebarNav.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              className={({ isActive }) =>
-                `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
-                  isActive ? 'bg-white/20 text-white' : 'text-white/80 hover:bg-white/10'
-                }`
-              }
-            >
-              <span className="text-lg leading-none">{item.icon}</span>
-              {item.label}
-            </NavLink>
-          ))}
+          {sidebarNav.map((item) => {
+            const Icon = item.icon;
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.end}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+                    isActive ? 'bg-white/20 text-white' : 'text-white/80 hover:bg-white/10'
+                  }`
+                }
+              >
+                <Icon className="w-5 h-5 shrink-0" />
+                {item.label}
+              </NavLink>
+            );
+          })}
         </nav>
 
         <div className="border-t border-white/15 px-4 py-4 space-y-3">
@@ -98,9 +102,9 @@ export function Layout({ children }: { children: ReactNode }) {
               onClick={toggleTheme}
               aria-label={t.header.toggleTheme}
               title={t.header.toggleTheme}
-              className="text-base bg-white/15 hover:bg-white/25 rounded-lg px-2.5 py-1.5 leading-none"
+              className="bg-white/15 hover:bg-white/25 rounded-lg px-2.5 py-1.5 leading-none"
             >
-              {dark ? '☀️' : '🌙'}
+              {dark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
           </div>
           <button
@@ -133,9 +137,9 @@ export function Layout({ children }: { children: ReactNode }) {
               onClick={toggleTheme}
               aria-label={t.header.toggleTheme}
               title={t.header.toggleTheme}
-              className="text-base bg-white/15 hover:bg-white/25 rounded-lg px-2.5 py-1.5 leading-none"
+              className="bg-white/15 hover:bg-white/25 rounded-lg px-2.5 py-1.5 leading-none"
             >
-              {dark ? '☀️' : '🌙'}
+              {dark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
             </button>
             <button
               onClick={handleLogout}
@@ -153,21 +157,24 @@ export function Layout({ children }: { children: ReactNode }) {
         {/* Mobiilin alapalkki (piilossa työpöydällä) */}
         <nav className="md:hidden fixed bottom-0 inset-x-0 z-10 bg-white border-t border-slate-200 max-w-2xl mx-auto">
           <div className="grid grid-cols-4">
-            {primaryNav.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                className={({ isActive }) =>
-                  `flex flex-col items-center gap-0.5 py-2.5 text-xs ${
-                    isActive ? 'text-brand font-semibold' : 'text-slate-500'
-                  }`
-                }
-              >
-                <span className="text-xl leading-none">{item.icon}</span>
-                {item.label}
-              </NavLink>
-            ))}
+            {primaryNav.map((item) => {
+              const Icon = item.icon;
+              return (
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  end={item.end}
+                  className={({ isActive }) =>
+                    `flex flex-col items-center gap-0.5 py-2.5 text-xs ${
+                      isActive ? 'text-brand font-semibold' : 'text-slate-500'
+                    }`
+                  }
+                >
+                  <Icon className="w-5 h-5" />
+                  {item.label}
+                </NavLink>
+              );
+            })}
           </div>
         </nav>
       </div>
