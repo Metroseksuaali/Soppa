@@ -1,5 +1,11 @@
 // Numeroiden ja kaksoisyksikön muotoilu suomeksi.
 
+// Jäsennä käyttäjän syöttämä luku: poista välilyönnit (myös sitovat) tuhaterottimina
+// ja hyväksy pilkku desimaalierottimena. Esim. "6 850" -> 6850, "2,5" -> 2.5.
+export function parseNum(s: string): number {
+  return parseFloat(s.replace(/\s/g, '').replace(',', '.'));
+}
+
 export function fmtNum(n: number | null | undefined): string {
   if (n === null || n === undefined) return '0';
   // Näytä enintään 3 desimaalia, poista turhat nollat, pilkku desimaalierottimena.

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, Item, Category } from '../api';
 import { Spinner, ErrorMsg, Modal, CategoryChip } from '../components/ui';
-import { fmtQty } from '../lib/format';
+import { fmtQty, parseNum } from '../lib/format';
 import { t } from '../i18n';
 
 const TABS: Category[] = ['ruoka', 'tavara', 'kaluste'];
@@ -108,7 +108,7 @@ function CreateItemModal({
         name: name.trim(),
         category,
         unit: unit.trim(),
-        pack_size: packSize ? parseFloat(packSize.replace(',', '.')) : null,
+        pack_size: packSize ? parseNum(packSize) : null,
         pack_unit: packUnit.trim() || null,
         returnable,
         note: note.trim() || null,
