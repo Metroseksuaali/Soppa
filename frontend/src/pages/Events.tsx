@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, EventRow } from '../api';
 import { Spinner, ErrorMsg } from '../components/ui';
+import { ArrowLeft } from 'lucide-react';
 import { fmtDateTime } from '../lib/format';
 import { t } from '../i18n';
 
@@ -39,7 +40,7 @@ export function EventsPage() {
 
   return (
     <div className="space-y-4 md:max-w-2xl">
-      <Link to="/" className="text-brand text-sm font-medium">{t.common.backHome}</Link>
+      <Link to="/" className="inline-flex items-center gap-1 text-brand text-sm font-medium"><ArrowLeft className="w-4 h-4" />{t.common.backHome}</Link>
       <h1 className="text-xl font-bold">{t.events.title}</h1>
 
       <div className="card p-4 flex gap-2">
