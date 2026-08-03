@@ -3,7 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, ItemDetail } from '../api';
 import { Spinner, ErrorMsg, Modal, CategoryChip } from '../components/ui';
-import { fmtQty, fmtDateTime, typeSign, fmtNum } from '../lib/format';
+import { fmtQty, fmtDateTime, typeSign, fmtNum, parseNum } from '../lib/format';
 import { t } from '../i18n';
 
 export function ItemDetailPage() {
@@ -166,7 +166,7 @@ function EditItemModal({ open, onClose, item }: { open: boolean; onClose: () => 
       api.patch(`/items/${item.id}`, {
         name: name.trim(),
         unit: unit.trim(),
-        pack_size: packSize ? parseFloat(packSize.replace(',', '.')) : null,
+        pack_size: packSize ? parseNum(packSize) : null,
         pack_unit: packUnit.trim() || null,
         returnable,
         note: note.trim() || null,

@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, Item, Location, MovementType } from '../api';
 import { Spinner, ErrorMsg } from '../components/ui';
-import { fmtQty, fmtNum } from '../lib/format';
+import { fmtQty, fmtNum, parseNum } from '../lib/format';
 import { t } from '../i18n';
 
 type Action = 'lisays' | 'vienti' | 'palautus' | 'kulutus' | 'inventointi';
@@ -70,8 +70,8 @@ export function LogPage() {
   const mutation = useMutation({
     mutationFn: async () => {
       if (!itemId) throw new Error(t.log.chooseItemError);
-      const q = parseFloat(quantity.replace(',', '.'));
-      const c = parseFloat(counted.replace(',', '.'));
+      const q = parseNum(quantity);
+      const c = parseNum(counted);
       switch (action) {
         case 'lisays':
           return api.post('/movements/add', { item_id: itemId, quantity: q, note: note || null });
@@ -111,7 +111,7 @@ export function LogPage() {
 
   const canSubmit =
     !!itemId &&
-    (action === 'inventointi' ? counted !== '' : quantity !== '' && parseFloat(quantity.replace(',', '.')) > 0) &&
+    (action === 'inventointi' ? counted !== '' : quantity !== '' && parseNum(quantity) > 0) &&
     (!actionCfg.needsLoc || !!locationId);
 
   if (itemsLoading) return <Spinner />;
