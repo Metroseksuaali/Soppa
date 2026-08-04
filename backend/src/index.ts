@@ -32,7 +32,13 @@ async function main() {
       contentSecurityPolicy: false,
     })
   );
-  app.use(express.json());
+  // Tuotekuvan lähetys (PUT /api/items/:id/photo) tarvitsee muuta API:a suuremman
+  // runkorajan: base64-koodattu näyttökuva + pikkukuva mahtuu 1 Mt:iin. Muut reitit
+  // pysyvät body-parserin oletusrajassa (100 kt).
+  const photoBodyPath = /^\/api\/items\/\d+\/photo$/;
+  const jsonDefault = express.json();
+  const jsonPhoto = express.json({ limit: '1mb' });
+  app.use((req, res, next) => (photoBodyPath.test(req.path) ? jsonPhoto : jsonDefault)(req, res, next));
   app.use(cookieParser());
 
   // Kehityksessä frontend pyörii eri portissa (Vite) → salli cookie-CORS.

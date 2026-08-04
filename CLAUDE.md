@@ -43,15 +43,18 @@ backend/
     routes/                auth, users, items, locations, events, movements, reports(+stock)
   db/
     migrations/001_init.sql  Skeema + varasto_stock / location_stock -näkymät
+    migrations/002_item_photos.sql  Tuotekuvat (item_photos)
     seed.ts                  Idempotentti: admin-käyttäjä + Varasto-sijainti
 frontend/
   src/
     i18n.ts                *** KAIKKI UI-tekstit täällä *** (ks. alla)
-    api.ts                 fetch-kääre (credentials: include) + TS-tyypit
+    api.ts                 fetch-kääre (credentials: include) + TS-tyypit + photoUrl()
     auth.tsx               AuthProvider / useAuth (react-query /auth/me)
     App.tsx                Reititys + Protected-wrapper
-    components/            Layout (alapalkki+yläpalkki), ui (Spinner/Modal/chipit)
+    components/            Layout (alapalkki+yläpalkki), ui (Spinner/Modal/chipit),
+                           ItemPhoto (tuotekuvan otto/näyttö + ItemThumb)
     lib/format.ts          Numeroiden, päivämäärien ja kaksoisyksikön muotoilu
+    lib/image.ts           Kuvan pienennys ja pakkaus selaimessa ennen lähetystä
     pages/                 Login, Home, Inventory, ItemDetail, Log, Locations, Events, Reports, Users
 scripts/                   backup.sh (pg_dump -> .sql.gz), restore.sh
 ```
@@ -78,6 +81,12 @@ scripts/                   backup.sh (pg_dump -> .sql.gz), restore.sh
   tapahtumien yli (ei nollausta). Kertaluontoinen tuote hoidetaan **arkistoimalla**.
 - **Void:** virheellisen kirjauksen voi perua (`voided=true`). Rivi jää lokiin näkyviin mutta
   poistuu saldolaskennasta. Kaikki saldo-SQL suodattaa `voided = FALSE`.
+- **Tuotekuva:** yksi valinnainen valokuva per tuote (`item_photos`), pelkkä tunnistamisen
+  apu — ei vaikuta saldoon eikä raportteihin. **Kuvaa ei koskaan kutista backend**: selain
+  pienentää sen ennen lähetystä ([lib/image.ts](frontend/src/lib/image.ts)) 1024 px /
+  ~150 kt näyttökuvaksi + 256 px pikkukuvaksi, ja backend vain torjuu ylisuuret
+  (400 kt / 60 kt) sekä tarkistaa tyypin taikatavuista. Näin ei tarvita `sharp`-tyyppistä
+  natiivikirjastoa. Kuvat ovat tietokannassa → `scripts/backup.sh` kattaa ne.
 - **Saldon lasku:** näkymät `varasto_stock` ja `location_stock` [001_init.sql](backend/db/migrations/001_init.sql).
   Movements-reitit laskevat saldon transaktion sisällä uudelleen (rivilukitus `FOR UPDATE`),
   jotta rinnakkaiset kirjaukset eivät vie saldoa negatiiviseksi.
@@ -121,6 +130,9 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up -d db app
 - **Migraatiot:** vain lisää uusi `db/migrations/NNN_*.sql`; älä muokkaa jo ajettuja. Ne ajetaan
   aakkosjärjestyksessä transaktiossa ja kirjataan `schema_migrations`-tauluun.
 - **Validointi:** kaikki bodyt `zod`illa reiteissä; virheet palautuvat `{ error }` + HTTP-koodi.
+- **Runkoraja:** `express.json()` on oletusrajassa (100 kt) kaikkialla paitsi
+  `PUT /api/items/:id/photo`, jolle [index.ts](backend/src/index.ts) antaa 1 Mt. Älä nosta
+  globaalia rajaa — se on tarkoituksella tiukka.
 - **Oikeudet:** flat — kaikki kirjautuneet voivat kirjata ja perua (void). Vain admin:
   käyttäjähallinta (`/api/users`). Audit-loki (`user_id` joka rivillä) antaa jäljitettävyyden.
 - **Raporttien aikavyöhyke:** päiväryhmittely `Europe/Helsinki`

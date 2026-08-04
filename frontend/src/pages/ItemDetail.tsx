@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, ItemDetail } from '../api';
 import { Spinner, ErrorMsg, Modal, CategoryChip } from '../components/ui';
+import { ItemPhoto } from '../components/ItemPhoto';
 import { ArrowLeft } from 'lucide-react';
 import { fmtQty, fmtDateTime, typeSign, fmtNum, parseNum } from '../lib/format';
 import { t } from '../i18n';
@@ -90,6 +91,13 @@ export function ItemDetailPage() {
           )}
         </div>
       </div>
+
+      <ItemPhoto
+        itemId={data.id}
+        itemName={data.name}
+        hasPhoto={data.has_photo}
+        photoUpdatedAt={data.photo_updated_at}
+      />
 
       {data.returnable && data.locations.length > 0 && (
         <div className="card p-4">

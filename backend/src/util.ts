@@ -27,6 +27,10 @@ export function errorHandler(err: any, _req: Request, res: Response, _next: Next
   if (err instanceof HttpError) {
     return res.status(err.status).json({ error: err.message });
   }
+  // body-parserin kokoraja ylittyi (esim. liian iso tuotekuva).
+  if (err && typeof err === 'object' && (err as any).type === 'entity.too.large') {
+    return res.status(413).json({ error: 'Lähetetty sisältö on liian suuri' });
+  }
   // Postgres unique-rikkomus tms.
   if (err && typeof err === 'object' && 'code' in err) {
     const code = (err as any).code;

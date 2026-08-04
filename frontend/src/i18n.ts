@@ -141,6 +141,24 @@ export const t = {
     voidConfirm: 'Perutaanko tämä kirjaus?',
   },
 
+  // Tuotekuva
+  photo: {
+    title: 'Kuva',
+    none: 'Ei kuvaa',
+    hint: 'Ota kuva tuotteesta — helpottaa samankaltaisten tunnistamista.',
+    take: 'Ota kuva',
+    gallery: 'Valitse kuva',
+    replace: 'Vaihda kuva',
+    remove: 'Poista kuva',
+    removeConfirm: 'Poistetaanko tuotteen kuva?',
+    processing: 'Käsitellään kuvaa…',
+    uploading: 'Lähetetään…',
+    saved: (size: string) => `Kuva tallennettu (${size})`,
+    open: 'Avaa kuva',
+    close: 'Sulje',
+    alt: (name: string) => `Kuva tuotteesta ${name}`,
+  },
+
   // Kirjaa-näkymä
   log: {
     title: 'Kirjaa',

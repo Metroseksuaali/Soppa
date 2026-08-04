@@ -64,6 +64,28 @@ ja uudet kirjaukset leimataan siihen. Varastosaldo on **jatkuva** tapahtumien yl
 nollausta). Tuote joka ei enää palaa käyttöön (esim. sponsorin lahjoittama juusto)
 hoidetaan **arkistoimalla** se, kun sitä ei enää tarvita — ei erillistä mekanismia.
 
+### 3.6 Tuotekuva
+
+Tuotteeseen voi liittää **yhden** havainnollistavan valokuvan (puhelimen kameralla tai
+galleriasta). Kuva on pelkkä tunnistamisen apuväline: se ei vaikuta saldoon, lokiin eikä
+raportteihin, ja sen voi vaihtaa tai poistaa milloin tahansa.
+
+**Kokobudjetti** on suunnittelun lähtökohta, koska kamerakuva on 3–8 Mt:
+
+| Taso | Toteutus |
+|------|----------|
+| Selain pienentää ennen lähetystä | Näyttökuva enintään 1024 px pitkältä sivulta, tavoite < 180 kt; pikkukuva 256 px, < 25 kt. WebP jos selain osaa koodata sen, muuten JPEG. |
+| Backend torjuu ylisuuret | Näyttökuva ≤ 400 kt, pikkukuva ≤ 60 kt, runkoraja 1 Mt, tyyppi tarkistetaan taikatavuista (vain JPEG/WebP) |
+| Tietokanta viimeisenä suojana | `CHECK (octet_length(...) <= ...)` |
+
+Mitattu tulos: 5 Mt:n kamerakuvasta tallentuu ~45 kt (näyttökuva + pikkukuva), eli
+1000 tuotetta ≈ 45–150 Mt. Kuvat ovat tietokannassa, joten olemassa oleva `pg_dump`-
+varmuuskopio kattaa ne eikä uutta levyvolyymiä tarvita.
+
+Listoissa (inventaario, Kirjaa-näkymän tuotevalinta) näytetään pikkukuva, tuotenäkymässä
+näyttökuva. Kuvan URL sisältää `?v=<photo_updated_at>`, joten selain saa välimuistittaa sen
+pysyvästi ja silti näkee vaihdetun kuvan heti.
+
 ## 4. Teknologiapino (lukittu)
 
 - **Backend:** Node.js 20 + TypeScript + Express. Postgres-ajuri `pg` (suora SQL, ei
@@ -131,6 +153,19 @@ CREATE TABLE items (
   note TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_by INT REFERENCES users(id)
+);
+
+-- Yksi havainnollistava valokuva per tuote (§3.6). Kokorajat ovat viimeinen suoja;
+-- ensisijaisesti selain pienentää kuvan ja backend hylkää ylisuuret.
+CREATE TABLE item_photos (
+  item_id    INT PRIMARY KEY REFERENCES items(id) ON DELETE CASCADE,
+  mime       TEXT NOT NULL CHECK (mime IN ('image/webp','image/jpeg')),
+  data       BYTEA NOT NULL CHECK (octet_length(data)  <= 400000),  -- näyttökuva ~1024 px
+  thumb      BYTEA NOT NULL CHECK (octet_length(thumb) <=  60000),  -- pikkukuva ~256 px
+  width      INT,
+  height     INT,
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_by INT REFERENCES users(id)
 );
 
 CREATE TABLE movements (
@@ -219,6 +254,14 @@ Kaikki JSON, autentikointi cookiessa. Virheet `{ error }` + HTTP-koodi.
 - `PATCH /api/items/:id {name?,unit?,pack_size?,pack_unit?,returnable?,note?}`
 - `POST /api/items/:id/archive` · `POST /api/items/:id/unarchive`
 - `GET /api/items/:id` → tiedot + varastosaldo + sijaintijakauma (palautuvat) + historia
+- Listaus ja yksittäishaku palauttavat myös `has_photo` + `photo_updated_at` (ei kuvan tavuja)
+
+**Tuotekuva** (§3.6)
+- `PUT /api/items/:id/photo {data, thumb, width?, height?}` — `data`/`thumb` base64, JPEG tai
+  WebP; luo tai korvaa kuvan. 400 jos ei tunnistu kuvaksi, 413 jos yli kokorajan.
+- `DELETE /api/items/:id/photo`
+- `GET /api/items/:id/photo[?v=<photo_updated_at>]` → näyttökuva (binääri)
+- `GET /api/items/:id/photo/thumb` → pikkukuva (binääri)
 
 **Sijainnit**
 - `GET /api/locations?active=true` · `POST /api/locations {name}` (kind='sijainti')
@@ -264,11 +307,13 @@ Mobile-first, isot napit, suomeksi. Alapalkki: Etusivu / Inventaario / Kirjaa / 
 1. **Kirjautuminen.**
 2. **Etusivu:** aktiivinen tapahtuma + pikanapit (Lisää / Vie / Palauta / Kuluta /
    Inventoi).
-3. **Inventaario:** tuotelista varastosaldoineen, välilehdet Ruoka/Tavara/Kalusteet, haku.
-   Tuotenäkymä: varastosaldo, montako ulkona (palautuvat, per sijainti), historia,
+3. **Inventaario:** tuotelista varastosaldoineen ja pikkukuvineen, välilehdet
+   Ruoka/Tavara/Kalusteet, haku. Tuotenäkymä: varastosaldo, kuva (ota/vaihda/poista,
+   napautus suurentaa), montako ulkona (palautuvat, per sijainti), historia,
    muokkaa/arkistoi.
-4. **Kirjaa (nopea vuo):** valitse tuote → toiminto → määrä (+ sijainti kun vienti/palautus)
-   → vahvista. Muistaa viimeksi käytetyn sijainnin oletuksena.
+4. **Kirjaa (nopea vuo):** valitse tuote (lista näyttää pikkukuvat) → toiminto → määrä
+   (+ sijainti kun vienti/palautus) → vahvista. Muistaa viimeksi käytetyn sijainnin
+   oletuksena.
 5. **Sijainnit:** listaa/luo/piilota sijainteja.
 6. **Tapahtumat:** luo, aseta aktiiviseksi, sulje.
 7. **Raportit:** tapahtumavalinta → yhteenveto per tuote + päiväkohtainen kulutus; näyttää
@@ -356,6 +401,8 @@ sarakkeesta, mutta älä toteuta.)
    yksikössä että painossa (esim. "12 pkt (2,0 kg)").
 9. Audit-loki näyttää jokaisesta kirjauksesta kuka, mitä, milloin, tyyppi, sijainti,
    tapahtuma.
+10. **Tuotekuva:** puhelimella otettu kuva tallentuu tuotteelle, näkyy pikkukuvana listoissa
+    ja pienenee automaattisesti alle ~180 kt:n; ylisuuri tai ei-kuva torjutaan (413/400).
 
 ## 16. Lukitut oletukset (toteuta näin)
 

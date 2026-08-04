@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Router, Request, Response } from 'express';
 import { z } from 'zod';
 import { query } from '../db';
 import { asyncHandler, HttpError } from '../util';
@@ -34,12 +34,16 @@ itemsRouter.get(
     }
     const where = conds.length ? `WHERE ${conds.join(' AND ')}` : '';
 
+    // Kuvan tavuja ei koskaan haeta listaukseen — vain tieto onko kuva ja milloin
+    // se päivittyi (jälkimmäinen toimii <img>-URL:n välimuistiavaimena).
     const { rows } = await query(
       `SELECT i.id, i.name, i.category, i.unit, i.pack_size, i.pack_unit,
               i.returnable, i.archived, i.note, i.created_at,
-              COALESCE(vs.qty, 0) AS stock
+              COALESCE(vs.qty, 0) AS stock,
+              (p.item_id IS NOT NULL) AS has_photo, p.updated_at AS photo_updated_at
        FROM items i
        LEFT JOIN varasto_stock vs ON vs.item_id = i.id
+       LEFT JOIN item_photos p ON p.item_id = i.id
        ${where}
        ORDER BY i.name`,
       params
@@ -68,7 +72,7 @@ itemsRouter.post(
        RETURNING id, name, category, unit, pack_size, pack_unit, returnable, archived, note, created_at`,
       [b.name, b.category, b.unit, b.pack_size ?? null, b.pack_unit ?? null, b.returnable, b.note ?? null, req.user!.id]
     );
-    res.status(201).json({ ...rows[0], stock: 0 });
+    res.status(201).json({ ...rows[0], stock: 0, has_photo: false, photo_updated_at: null });
   })
 );
 
@@ -99,7 +103,9 @@ itemsRouter.patch(
     params.push(id);
     const { rows } = await query(
       `UPDATE items SET ${sets.join(', ')} WHERE id = $${i}
-       RETURNING id, name, category, unit, pack_size, pack_unit, returnable, archived, note, created_at`,
+       RETURNING id, name, category, unit, pack_size, pack_unit, returnable, archived, note, created_at,
+                 EXISTS (SELECT 1 FROM item_photos p WHERE p.item_id = items.id) AS has_photo,
+                 (SELECT p.updated_at FROM item_photos p WHERE p.item_id = items.id) AS photo_updated_at`,
       params
     );
     if (rows.length === 0) throw new HttpError(404, 'Tuotetta ei löydy');
@@ -135,9 +141,11 @@ itemsRouter.get(
     const itemRes = await query(
       `SELECT i.id, i.name, i.category, i.unit, i.pack_size, i.pack_unit,
               i.returnable, i.archived, i.note, i.created_at,
-              COALESCE(vs.qty, 0) AS stock
+              COALESCE(vs.qty, 0) AS stock,
+              (p.item_id IS NOT NULL) AS has_photo, p.updated_at AS photo_updated_at
        FROM items i
        LEFT JOIN varasto_stock vs ON vs.item_id = i.id
+       LEFT JOIN item_photos p ON p.item_id = i.id
        WHERE i.id = $1`,
       [id]
     );
@@ -172,3 +180,94 @@ itemsRouter.get(
     res.json({ ...item, locations: locRes.rows, history: histRes.rows });
   })
 );
+
+// --- Tuotekuva ---------------------------------------------------------------
+//
+// Yksi kuva per tuote. Selain pienentää ja pakkaa kuvan ennen lähetystä
+// (frontend/src/lib/image.ts), joten backend ei tarvitse kuvankäsittelykirjastoa.
+// Tässä varmistetaan vain että data on aitoa WebP/JPEG:iä ja mahtuu budjettiin —
+// asiakaspuolen pakkaukseen ei voi luottaa yksinään.
+
+const MAX_PHOTO_BYTES = 400_000; // ~1024 px pitkä sivu, laatu ~0,7
+const MAX_THUMB_BYTES = 60_000; // ~256 px pitkä sivu
+
+// Tunnista tiedostotyyppi taikatavuista, älä luota lähettäjän ilmoitukseen.
+function sniffMime(buf: Buffer): 'image/jpeg' | 'image/webp' | null {
+  if (buf.length > 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'image/jpeg';
+  if (buf.length > 12 && buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WEBP') {
+    return 'image/webp';
+  }
+  return null;
+}
+
+function decodePhoto(base64: string, maxBytes: number, label: string): { buf: Buffer; mime: string } {
+  const buf = Buffer.from(base64, 'base64');
+  if (buf.length === 0) throw new HttpError(400, `${label}: tyhjä kuva`);
+  if (buf.length > maxBytes) {
+    throw new HttpError(413, `${label}: kuva on liian suuri (${Math.round(buf.length / 1024)} kt)`);
+  }
+  const mime = sniffMime(buf);
+  if (!mime) throw new HttpError(400, `${label}: tuntematon kuvamuoto (vain JPEG ja WebP)`);
+  return { buf, mime };
+}
+
+const photoSchema = z.object({
+  data: z.string().min(1), // base64, näyttökuva
+  thumb: z.string().min(1), // base64, pikkukuva listoihin
+  width: z.number().int().positive().max(10000).optional(),
+  height: z.number().int().positive().max(10000).optional(),
+});
+
+// PUT /api/items/:id/photo — luo tai korvaa tuotteen kuva.
+itemsRouter.put(
+  '/:id/photo',
+  asyncHandler(async (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    const b = photoSchema.parse(req.body);
+
+    const main = decodePhoto(b.data, MAX_PHOTO_BYTES, 'Kuva');
+    const thumb = decodePhoto(b.thumb, MAX_THUMB_BYTES, 'Pikkukuva');
+    if (thumb.mime !== main.mime) throw new HttpError(400, 'Kuvan ja pikkukuvan muoto poikkeaa');
+
+    const exists = await query('SELECT 1 FROM items WHERE id = $1', [id]);
+    if (exists.rows.length === 0) throw new HttpError(404, 'Tuotetta ei löydy');
+
+    const { rows } = await query(
+      `INSERT INTO item_photos (item_id, mime, data, thumb, width, height, updated_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       ON CONFLICT (item_id) DO UPDATE
+         SET mime = EXCLUDED.mime, data = EXCLUDED.data, thumb = EXCLUDED.thumb,
+             width = EXCLUDED.width, height = EXCLUDED.height,
+             updated_at = now(), updated_by = EXCLUDED.updated_by
+       RETURNING updated_at`,
+      [id, main.mime, main.buf, thumb.buf, b.width ?? null, b.height ?? null, req.user!.id]
+    );
+    res.json({ has_photo: true, photo_updated_at: rows[0].updated_at, bytes: main.buf.length });
+  })
+);
+
+itemsRouter.delete(
+  '/:id/photo',
+  asyncHandler(async (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    const { rowCount } = await query('DELETE FROM item_photos WHERE item_id = $1', [id]);
+    if (rowCount === 0) throw new HttpError(404, 'Tuotteella ei ole kuvaa');
+    res.json({ has_photo: false, photo_updated_at: null });
+  })
+);
+
+// Kuvan tarjoilu. URL:ssa on ?v=<photo_updated_at>, joten sisältö on annetulla
+// URL:lla muuttumaton → pitkä välimuisti. Ilman v-parametria pakotetaan revalidointi.
+// private = jaettu välimuisti (proxy) ei saa säilöä kirjautumisen takaista kuvaa.
+async function sendPhoto(req: Request, res: Response, column: 'data' | 'thumb') {
+  const id = parseInt(req.params.id, 10);
+  const { rows } = await query(`SELECT mime, ${column} AS bytes FROM item_photos WHERE item_id = $1`, [id]);
+  if (rows.length === 0) throw new HttpError(404, 'Kuvaa ei löydy');
+  res.set('Content-Type', rows[0].mime);
+  res.set('Cache-Control', req.query.v ? 'private, max-age=31536000, immutable' : 'private, no-cache');
+  // Express laskee ETagin ja vastaa 304:llä jos selaimella on jo sama versio.
+  res.send(rows[0].bytes);
+}
+
+itemsRouter.get('/:id/photo', asyncHandler((req, res) => sendPhoto(req, res, 'data')));
+itemsRouter.get('/:id/photo/thumb', asyncHandler((req, res) => sendPhoto(req, res, 'thumb')));

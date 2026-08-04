@@ -27,8 +27,17 @@ async function request<T>(method: string, path: string, body?: unknown): Promise
 export const api = {
   get: <T>(path: string) => request<T>('GET', path),
   post: <T>(path: string, body?: unknown) => request<T>('POST', path, body),
+  put: <T>(path: string, body?: unknown) => request<T>('PUT', path, body),
   patch: <T>(path: string, body?: unknown) => request<T>('PATCH', path, body),
+  del: <T>(path: string) => request<T>('DELETE', path),
 };
+
+// Tuotekuvan osoite. v = photo_updated_at toimii välimuistiavaimena: kun kuva
+// vaihtuu, URL muuttuu ja selain hakee uuden version (backend sallii pitkän cachen).
+export function photoUrl(itemId: number, v?: string | null, size: 'full' | 'thumb' = 'full'): string {
+  const path = size === 'thumb' ? `/api/items/${itemId}/photo/thumb` : `/api/items/${itemId}/photo`;
+  return v ? `${path}?v=${encodeURIComponent(v)}` : path;
+}
 
 // --- Tyypit ---
 
@@ -56,6 +65,8 @@ export interface Item {
   note: string | null;
   created_at: string;
   stock: number;
+  has_photo: boolean;
+  photo_updated_at: string | null;
 }
 
 export interface LocationDist {
