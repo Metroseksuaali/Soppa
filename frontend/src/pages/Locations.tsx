@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, Location } from '../api';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ChevronRight } from 'lucide-react';
 import { Spinner, ErrorMsg } from '../components/ui';
 import { t } from '../i18n';
 
@@ -53,18 +53,28 @@ export function LocationsPage() {
       {isLoading && <Spinner />}
       {error && <ErrorMsg error={error} />}
 
+      {!!data?.length && <p className="text-xs text-slate-500">{t.locations.listHint}</p>}
+
       <ul className="space-y-2">
         {data?.map((l) => (
-          <li key={l.id} className="card p-4 flex items-center justify-between">
-            <div>
-              <span className="font-medium">{l.name}</span>
-              {l.kind === 'varasto' && (
-                <span className="chip bg-slate-100 text-slate-600 ml-2">{t.locations.warehouseTag}</span>
-              )}
-              {!l.active && <span className="chip bg-red-100 text-red-700 ml-2">{t.locations.hiddenTag}</span>}
-            </div>
+          <li key={l.id} className="card p-4 flex items-center justify-between gap-2">
+            <Link to={`/sijainnit/${l.id}`} className="flex items-center gap-2 min-w-0 flex-1">
+              <div className="min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-medium">{l.name}</span>
+                  {l.kind === 'varasto' && (
+                    <span className="chip bg-slate-100 text-slate-600">{t.locations.warehouseTag}</span>
+                  )}
+                  {!l.active && <span className="chip bg-red-100 text-red-700">{t.locations.hiddenTag}</span>}
+                </div>
+                <div className="text-xs text-slate-500 mt-0.5">
+                  {l.items_out ? t.locations.itemsOut(l.items_out) : t.locations.nothingOut}
+                </div>
+              </div>
+              <ChevronRight className="w-5 h-5 text-slate-400 shrink-0 ml-auto" />
+            </Link>
             {l.kind !== 'varasto' && (
-              <button className="text-sm text-brand font-medium" onClick={() => toggleMut.mutate(l)}>
+              <button className="text-sm text-brand font-medium shrink-0" onClick={() => toggleMut.mutate(l)}>
                 {l.active ? t.locations.hide : t.locations.show}
               </button>
             )}

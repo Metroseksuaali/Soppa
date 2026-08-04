@@ -8,6 +8,7 @@ import { InventoryPage } from './pages/Inventory';
 import { ItemDetailPage } from './pages/ItemDetail';
 import { LogPage } from './pages/Log';
 import { LocationsPage } from './pages/Locations';
+import { LocationDetailPage } from './pages/LocationDetail';
 import { EventsPage } from './pages/Events';
 import { ReportsPage } from './pages/Reports';
 import { UsersPage } from './pages/Users';
@@ -29,6 +30,7 @@ export default function App() {
       <Route path="/inventaario/:id" element={<Protected><ItemDetailPage /></Protected>} />
       <Route path="/kirjaa" element={<Protected><LogPage /></Protected>} />
       <Route path="/sijainnit" element={<Protected><LocationsPage /></Protected>} />
+      <Route path="/sijainnit/:id" element={<Protected><LocationDetailPage /></Protected>} />
       <Route path="/tapahtumat" element={<Protected><EventsPage /></Protected>} />
       <Route path="/raportit" element={<Protected><ReportsPage /></Protected>} />
       <Route path="/kayttajat" element={<Protected><UsersPage /></Protected>} />
