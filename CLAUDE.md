@@ -55,7 +55,8 @@ frontend/
                            ItemPhoto (tuotekuvan otto/näyttö + ItemThumb)
     lib/format.ts          Numeroiden, päivämäärien ja kaksoisyksikön muotoilu
     lib/image.ts           Kuvan pienennys ja pakkaus selaimessa ennen lähetystä
-    pages/                 Login, Home, Inventory, ItemDetail, Log, Locations, Events, Reports, Users
+    pages/                 Login, Home, Inventory, ItemDetail, Log, Locations, LocationDetail,
+                           Events, Reports, Users
 scripts/                   backup.sh (pg_dump -> .sql.gz), restore.sh
 ```
 
@@ -87,6 +88,11 @@ scripts/                   backup.sh (pg_dump -> .sql.gz), restore.sh
   ~150 kt näyttökuvaksi + 256 px pikkukuvaksi, ja backend vain torjuu ylisuuret
   (400 kt / 60 kt) sekä tarkistaa tyypin taikatavuista. Näin ei tarvita `sharp`-tyyppistä
   natiivikirjastoa. Kuvat ovat tietokannassa → `scripts/backup.sh` kattaa ne.
+- **Sijaintinäkymä:** `GET /api/locations/:id` kertoo mitä sijainnissa on **juuri nyt ulkona**
+  (`location_stock`, qty > 0) ja mitä siellä on **kulutettu** (rajattuna aktiiviseen tapahtumaan
+  jos sellainen on, muuten koko historia). Näkymä ei tuo uutta dataa — se on olemassa olevan
+  lokin suodatus. Palautus tehdään siitä samasta listasta rasti ruutuun, ja jokainen rastittu
+  tuote kirjataan omana `POST /movements/return` -kutsunaan (normaalit rajoitteet pätevät).
 - **Saldon lasku:** näkymät `varasto_stock` ja `location_stock` [001_init.sql](backend/db/migrations/001_init.sql).
   Movements-reitit laskevat saldon transaktion sisällä uudelleen (rivilukitus `FOR UPDATE`),
   jotta rinnakkaiset kirjaukset eivät vie saldoa negatiiviseksi.

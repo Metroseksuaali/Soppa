@@ -108,6 +108,28 @@ export interface Location {
   kind: 'varasto' | 'sijainti';
   active: boolean;
   created_at: string;
+  items_out?: number;
+}
+
+// Rivi sijaintinäkymässä: joko ulkona oleva palautuva tuote tai täällä kulutettu tuote.
+export interface LocationItemRow {
+  item_id: number;
+  name: string;
+  category: Category;
+  unit: string;
+  pack_size: number | null;
+  pack_unit: string | null;
+  qty: number;
+  qty_secondary: number | null;
+  has_photo?: boolean;
+  photo_updated_at?: string | null;
+}
+
+export interface LocationDetail {
+  location: Location;
+  out: LocationItemRow[];
+  consumed: LocationItemRow[];
+  consumed_event: { id: number; name: string } | null;
 }
 
 export interface EventRow {
