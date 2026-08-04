@@ -10,6 +10,7 @@ import { LogPage } from './pages/Log';
 import { LocationsPage } from './pages/Locations';
 import { EventsPage } from './pages/Events';
 import { ReportsPage } from './pages/Reports';
+import { ForecastPage } from './pages/Forecast';
 import { UsersPage } from './pages/Users';
 
 function Protected({ children }: { children: JSX.Element }) {
@@ -31,6 +32,7 @@ export default function App() {
       <Route path="/sijainnit" element={<Protected><LocationsPage /></Protected>} />
       <Route path="/tapahtumat" element={<Protected><EventsPage /></Protected>} />
       <Route path="/raportit" element={<Protected><ReportsPage /></Protected>} />
+      <Route path="/ennuste" element={<Protected><ForecastPage /></Protected>} />
       <Route path="/kayttajat" element={<Protected><UsersPage /></Protected>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

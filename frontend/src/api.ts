@@ -117,6 +117,12 @@ export interface EventRow {
   starts_at: string | null;
   ends_at: string | null;
   created_at: string;
+  /** Orgien määrä — ennusteen skaalauskerroin. null = ei kirjattu. */
+  org_count: number | null;
+  /** Käsin syötetty kesto päivinä (null = päätellään päivämääristä/kirjauksista). */
+  days_manual: number | null;
+  /** Efektiivinen kesto: käsin syötetty > päivämääräväli > kirjauspäivien määrä > 1. */
+  days_effective: number;
 }
 
 export interface StockRow {
@@ -141,6 +147,84 @@ export interface ConsumptionRow {
   pack_unit: string | null;
   maara_unit: number;
   maara_sekundaari: number | null;
+}
+
+// --- Ennuste ---
+
+export type ForecastBasis = 'per_org' | 'per_org_day';
+
+export interface ForecastHistoryRow {
+  event_id: number;
+  event_name: string;
+  starts_at: string | null;
+  org_count: number;
+  days: number;
+  consumed: number;
+  per_org: number;
+  per_org_day: number;
+}
+
+export interface ForecastItem {
+  item_id: number;
+  name: string;
+  category: Category;
+  unit: string;
+  pack_size: number | null;
+  pack_unit: string | null;
+  archived: boolean;
+  events_used: number;
+  events_total: number;
+  per_org_min: number;
+  per_org_max: number;
+  per_org_day_min: number;
+  per_org_day_max: number;
+  total_consumed: number;
+  per_org: number;
+  per_org_day: number;
+  estimate_per_org: number;
+  estimate_per_org_day: number;
+  stock_now: number;
+  to_buy_per_org: number;
+  to_buy_per_org_day: number;
+  history: ForecastHistoryRow[];
+}
+
+export interface ForecastReport {
+  basis: {
+    org_count: number;
+    days: number;
+    events_used: { event_id: number; name: string; starts_at: string | null; org_count: number; days: number }[];
+    events_skipped: { event_id: number; name: string }[];
+  };
+  items: ForecastItem[];
+}
+
+// --- Vapaa kulutustilasto ---
+
+export interface TotalsItem {
+  item_id: number;
+  name: string;
+  category: Category;
+  unit: string;
+  pack_size: number | null;
+  pack_unit: string | null;
+  total_unit: number;
+  total_secondary: number | null;
+  events_used: number;
+}
+
+export interface TotalsByEvent {
+  item_id: number;
+  event_id: number | null;
+  event_name: string | null;
+  event_at: string | null;
+  maara_unit: number;
+  maara_sekundaari: number | null;
+}
+
+export interface TotalsReport {
+  items: TotalsItem[];
+  by_event: TotalsByEvent[];
 }
 
 export interface EventReport {

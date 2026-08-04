@@ -18,6 +18,7 @@ export const t = {
     inventory: 'Inventaario',
     log: 'Kirjaa',
     reports: 'Raportit',
+    forecast: 'Ennuste',
     locations: 'Sijainnit',
     events: 'Tapahtumat',
     users: 'Käyttäjät',
@@ -95,6 +96,7 @@ export const t = {
     outOfStock: 'Loppu varastosta',
     locations: 'Sijainnit',
     events: 'Tapahtumat',
+    forecast: 'Ennuste',
     users: 'Käyttäjät',
     actions: {
       lisays: 'Lisää',
@@ -201,6 +203,18 @@ export const t = {
     report: 'Raportti',
     activate: 'Aseta aktiiviseksi',
     close: 'Sulje tapahtuma',
+    // Ennustelaskennan mitat
+    orgCount: 'Orgeja',
+    orgCountShort: (n: number) => `${n} orgia`,
+    orgCountMissing: 'Orgien määrä puuttuu',
+    days: 'Kestoa (pv)',
+    daysShort: (n: number) => `${n} pv`,
+    daysAuto: ' (arvio)',
+    metricsHint: 'Orgien määrä ja kesto tarkentavat kulutusennustetta.',
+    metricsSaved: 'Tallennettu',
+    editMetrics: 'Muokkaa mittoja',
+    newOrgPlaceholder: 'Orgeja',
+    newDaysPlaceholder: 'Kesto (pv)',
   },
 
   // Käyttäjät
@@ -248,5 +262,65 @@ export const t = {
       consumption: 'Kulutus',
       weightPlain: 'Paino',
     },
+  },
+
+  // Kulutusennuste
+  forecast: {
+    title: 'Kulutusennuste',
+    intro:
+      'Arvioi tulevan tapahtuman tarve aiempien tapahtumien menekistä. Kulutus suhteutetaan orgien määrään, joten eri kokoiset tapahtumat ovat vertailukelpoisia.',
+
+    planTitle: '1. Suunniteltu tapahtuma',
+    orgCount: 'Orgien määrä',
+    days: 'Kesto (päivää)',
+
+    basisTitle: '2. Laskentatapa',
+    basisPerOrg: 'Per orgi',
+    basisPerOrgDay: 'Per orgi / päivä',
+    basisPerOrgHint: 'Kulutus / orgi × suunnitellut orgit. Kesto vaikuttaa vain välillisesti.',
+    basisPerOrgDayHint:
+      'Kulutus / orgi / päivä × orgit × päivät. Tarkempi, jos vertailutapahtumat ovat eri mittaisia.',
+
+    eventsTitle: '3. Vertailutapahtumat',
+    eventsHint: 'Jätä poikkeukselliset tapahtumat pois, niin keskiarvo ei vääristy.',
+    selectAll: 'Valitse kaikki',
+    selectNone: 'Tyhjennä',
+    noOrgCount: 'ei orgimäärää',
+    skippedNotice: (names: string) =>
+      `Ei mukana laskennassa (orgien määrä puuttuu): ${names}. Lisää luku Tapahtumat-sivulla.`,
+    category: 'Kategoria',
+    allCategories: 'Kaikki',
+    calculate: 'Laske ennuste',
+    calculating: 'Lasketaan…',
+    needEvents: 'Valitse vähintään yksi vertailutapahtuma, jossa on orgien määrä.',
+    needOrgCount: 'Syötä suunnitellun tapahtuman orgien määrä.',
+
+    resultTitle: 'Arvio ja ostettava määrä',
+    estimate: 'Arvioitu tarve',
+    stockNow: 'Varastossa',
+    toBuy: 'Ostettava',
+    enough: 'Riittää varastosta',
+    noData: 'Valituista tapahtumista ei löydy kulutuskirjauksia.',
+    archivedTag: 'Arkistoitu',
+
+    confidence: (used: number, total: number) =>
+      `${used}/${total} tapahtumaa pohjana`,
+    spread: (min: string, max: string, unit: string, per: string) =>
+      `Vaihteluväli ${min}–${max} ${unit} ${per}`,
+    lowConfidence: 'Vain yksi tapahtuma pohjana — arvio epävarma.',
+    highSpread: 'Suuri hajonta tapahtumien välillä — arvio epävarma.',
+    showHistory: 'Näytä pohjadata',
+    hideHistory: 'Piilota pohjadata',
+    historyRow: (orgs: number, days: number) => `${orgs} orgia · ${days} pv`,
+    perOrgLabel: '/ orgi',
+    perOrgDayLabel: '/ orgi / pv',
+
+    statsTitle: 'Kulutus yhteensä',
+    statsHint: 'Valittujen tapahtumien yhteenlaskettu menekki — ja kertymä tapahtuma kerrallaan.',
+    statsAllTime: 'Koko historia',
+    statsSelected: 'Valitut tapahtumat',
+    statsEmpty: 'Ei kulutuskirjauksia.',
+    cumulative: 'Kertymä',
+    noEvent: 'Ei tapahtumaa',
   },
 };

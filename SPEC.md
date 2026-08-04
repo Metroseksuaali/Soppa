@@ -59,7 +59,8 @@ Tuotteella on laskentayksikkö ja valinnainen pakkauskoko. Esim. Leipä: `unit='
 Jos `pack_size` puuttuu, näytetään vain laskentayksikkö.
 
 ### 3.5 Tapahtumat
-Kevyt: tapahtumalla on nimi ja aktiivisuustila. Yksi tapahtuma on aktiivinen kerrallaan,
+Kevyt: tapahtumalla on nimi, aktiivisuustila ja kaksi valinnaista mittalukua
+(**orgien määrä** ja **kesto päivinä**, §3.7). Yksi tapahtuma on aktiivinen kerrallaan,
 ja uudet kirjaukset leimataan siihen. Varastosaldo on **jatkuva** tapahtumien yli (ei
 nollausta). Tuote joka ei enää palaa käyttöön (esim. sponsorin lahjoittama juusto)
 hoidetaan **arkistoimalla** se, kun sitä ei enää tarvita — ei erillistä mekanismia.
@@ -85,6 +86,39 @@ varmuuskopio kattaa ne eikä uutta levyvolyymiä tarvita.
 Listoissa (inventaario, Kirjaa-näkymän tuotevalinta) näytetään pikkukuva, tuotenäkymässä
 näyttökuva. Kuvan URL sisältää `?v=<photo_updated_at>`, joten selain saa välimuistittaa sen
 pysyvästi ja silti näkee vaihdetun kuvan heti.
+
+### 3.7 Kulutusennuste (tapahtuman mitat)
+
+Menekki on sidoksissa tapahtuman kokoon, joten tapahtumaan kirjataan **orgien määrä**
+(`events.org_count`) ja valinnaisesti **kesto päivinä** (`events.days`). Näistä saadaan
+kulutushistoriasta kerroin, jolla tulevan tapahtuman tarve arvioidaan — esim. ensi kesän
+tilaukset voi tehdä ennakkoon aiempien vuosien menekin perusteella.
+
+**Kesto** ei ole pakollinen: `event_metrics`-näkymä päättelee sen järjestyksessä
+käsin syötetty → `ends_at − starts_at` (+1 pv) → kulutuskirjausten eri päivien määrä → 1.
+Näin vanhat tapahtumat kelpaavat pohjadataksi ilman käsityötä.
+
+**Kaksi laskentatapaa**, käyttäjä valitsee:
+
+| Tapa | Kerroin | Arvio |
+|------|---------|-------|
+| Per orgi | Σ kulutus / Σ orgit | kerroin × suunnitellut orgit |
+| Per orgi / päivä | Σ kulutus / Σ (orgit × päivät) | kerroin × orgit × päivät |
+
+Kerroin on **painotettu keskiarvo** (summa jaettuna summalla), joten iso tapahtuma painaa
+enemmän kuin pieni. Pohjatapahtumat valitaan täppäämällä: poikkeukselliset jätetään pois.
+Tapahtuma jolta puuttuu `org_count` ei kelpaa pohjaksi — se palautetaan erikseen
+(`events_skipped`), jotta käyttöliittymä voi kehottaa täydentämään luvun.
+
+**Ostoslista:** ostettava = max(0, arvioitu tarve − varastosaldo nyt). Ennuste ei kirjaa
+mitään eikä muuta saldoa; se on pelkkä lokin luku.
+
+**Luottamus:** jokaisesta tuotteesta palautetaan montako tapahtumaa arvion takana on
+(`events_used` / `events_total`) ja kertoimen vaihteluväli (min–max), jotta yhden
+tapahtuman varaan rakentuva tai voimakkaasti hajoava arvio erottuu.
+
+Sama pohjadata palvelee vapaata tilastointia (§11): kokonaiskulutus valituista tapahtumista
+ja kertymä tapahtuma kerrallaan (esim. juuston kulutus kiloina jatkuvana lukuna).
 
 ## 4. Teknologiapino (lukittu)
 
@@ -126,6 +160,8 @@ CREATE TABLE events (
   active BOOLEAN NOT NULL DEFAULT FALSE,
   starts_at TIMESTAMPTZ,
   ends_at TIMESTAMPTZ,
+  org_count INT,                   -- orgien määrä (§3.7); NULL = ei kirjattu
+  days INT,                        -- kesto päivinä käsin; NULL = päätellään
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_by INT REFERENCES users(id)
 );
@@ -224,6 +260,25 @@ WHERE m.voided = FALSE AND m.location_id IS NOT NULL
 GROUP BY m.item_id, m.location_id;
 ```
 
+Tapahtuman efektiiviset mitat ennustetta varten (§3.7) — kesto päätellään jos sitä ei ole
+syötetty käsin:
+
+```sql
+CREATE VIEW event_metrics AS
+SELECT e.id AS event_id, e.org_count, e.days AS days_manual,
+  COALESCE(
+    e.days,
+    CASE WHEN e.starts_at IS NOT NULL AND e.ends_at IS NOT NULL
+         THEN GREATEST(1, (date(e.ends_at   AT TIME ZONE 'Europe/Helsinki')
+                         - date(e.starts_at AT TIME ZONE 'Europe/Helsinki')) + 1) END,
+    NULLIF((SELECT COUNT(DISTINCT date(m.created_at AT TIME ZONE 'Europe/Helsinki'))
+            FROM movements m
+            WHERE m.event_id = e.id AND m.voided = FALSE AND m.type = 'kulutus'), 0),
+    1
+  )::int AS days_effective
+FROM events e;
+```
+
 ## 7. Toimintotyypit
 
 | type          | Vaikutus varastoon | location_id | Rajoite |
@@ -268,9 +323,11 @@ Kaikki JSON, autentikointi cookiessa. Virheet `{ error }` + HTTP-koodi.
 - `PATCH /api/locations/:id {name?,active?}`
 
 **Tapahtumat**
-- `GET /api/events` · `GET /api/events/active` · `POST /api/events {name}`
-- `PATCH /api/events/:id {name?,active?}` (active=true → tekee tästä ainoan aktiivisen)
+- `GET /api/events` · `GET /api/events/active` · `POST /api/events {name, org_count?, days?}`
+- `PATCH /api/events/:id {name?,active?,org_count?,days?}` (active=true → tekee tästä ainoan
+  aktiivisen; `org_count`/`days` = `null` tyhjentää luvun)
 - `POST /api/events/:id/close` (asettaa ends_at, active=false)
+- Kaikki palauttavat myös `org_count`, `days_manual` ja `days_effective` (`event_metrics`, §3.7)
 
 **Kirjaukset** (loki). Jokainen leimataan aktiiviseen tapahtumaan (event_id) ja käyttäjään.
 - `POST /api/movements/add       {item_id, quantity, note?}`
@@ -285,6 +342,11 @@ Kaikki JSON, autentikointi cookiessa. Virheet `{ error }` + HTTP-koodi.
 - `GET /api/stock` → varastosaldo per tuote (+ pack_size → sekundäärimäärä)
 - `GET /api/events/:id/report?group_by=day` → tapahtuman yhteenveto + päiväkohtainen kulutus
 - `GET /api/reports/consumption?event_id=&date=&item_id=&category=` → kulutus (kpl + paino)
+- `POST /api/reports/forecast {event_ids[], org_count, days?, category?}` → kulutusennuste
+  (§3.7): per tuote kerroin, arvio molemmilla laskentatavoilla, varastosaldo, ostettava
+  määrä, luottamustiedot ja pohjadata tapahtumittain
+- `GET /api/reports/totals?event_ids=1,2&item_id=&category=` → kokonaiskulutus per tuote +
+  tapahtumakohtainen erittely aikajärjestyksessä (kertymä)
 
 **Validointi:** `deploy`/`return` vain kun `returnable=true` (muuten 400). `vienti`,
 `kulutus` eivät saa viedä varastosaldoa negatiiviseksi (409). `return` ei saa palauttaa
@@ -315,10 +377,15 @@ Mobile-first, isot napit, suomeksi. Alapalkki: Etusivu / Inventaario / Kirjaa / 
    (+ sijainti kun vienti/palautus) → vahvista. Muistaa viimeksi käytetyn sijainnin
    oletuksena.
 5. **Sijainnit:** listaa/luo/piilota sijainteja.
-6. **Tapahtumat:** luo, aseta aktiiviseksi, sulje.
+6. **Tapahtumat:** luo, aseta aktiiviseksi, sulje. Orgien määrän ja keston voi syöttää
+   luonnin yhteydessä tai muokata jälkikäteen paikan päällä (§3.7).
 7. **Raportit:** tapahtumavalinta → yhteenveto per tuote + päiväkohtainen kulutus; näyttää
    sekä laskentayksikön että painon. Vienti CSV:nä.
-8. **Käyttäjät** (admin).
+8. **Ennuste:** suunnitellun tapahtuman orgit + kesto → laskentatapa (per orgi / per orgi
+   per päivä) → vertailutapahtumien täppäys → per tuote arvioitu tarve, varastosaldo ja
+   ostettava määrä + luottamustiedot. Samalla sivulla kulutus yhteensä ja kertymä
+   valituista tapahtumista (tai koko historiasta).
+9. **Käyttäjät** (admin).
 
 UX: negatiivista saldoa ei sallita — selkeä virhe. Määrät sallivat desimaalit. Inventointi
 näyttää nykysaldon esitäytettynä, käyttäjä korjaa lasketun luvun.
@@ -346,6 +413,15 @@ ORDER BY pvm, i.name;
 **Tapahtuman yhteenveto** (`GET /api/events/:id/report`): per tuote lisätty (Σ lisays),
 kulutettu (Σ kulutus), ulkona nyt (location_stock summa), varastosaldo nyt. `group_by=day`
 lisää päiväkohtaisen kulutuserittelyn yllä olevalla kaavalla.
+
+**Kulutusennuste** (`POST /api/reports/forecast`, §3.7): kulutus summataan per tuote per
+tapahtuma, suhteutetaan `event_metrics`-näkymän orgimäärään (ja kestoon) ja kerrotaan
+suunnitellun tapahtuman koolla. Vain `kulutus`-tyyppi lasketaan menekiksi — `vienti` ja
+`palautus` vain liikuttavat palautuvia edestakaisin eivätkä kuvaa kulumista.
+
+**Kokonaiskulutus ja kertymä** (`GET /api/reports/totals`): sama data ilman ennustetta —
+per tuote yhteensä (kaksoisyksiköllä) sekä tapahtumakohtainen erittely aikajärjestyksessä,
+josta käyttöliittymä laskee juoksevan kertymän.
 
 ## 12. Julkaisu
 
@@ -382,8 +458,12 @@ Luo jos ei ole: admin-käyttäjä (`ADMIN_USERNAME`/`ADMIN_PASSWORD`) ja **Varas
 ## 14. Ei kuulu tähän versioon
 
 Offline-tila, viivakoodit, useampi varasto, toimittaja-/hinta-/kustannushallinta,
-monikielisyys, ennusteet. (Jätä `items`-tauluun kommentti mahdollisesta `barcode`-
-sarakkeesta, mutta älä toteuta.)
+monikielisyys. (Jätä `items`-tauluun kommentti mahdollisesta `barcode`-sarakkeesta, mutta
+älä toteuta.)
+
+Kulutusennuste (§3.7) **kuuluu** toteutukseen, mutta pysyy tarkoituksella yksinkertaisena:
+painotettu keskiarvo valituista tapahtumista. Ei tuoreuspainotusta, ei kausivaihtelun
+mallinnusta, ei automaattista tilausten lähetystä.
 
 ## 15. Hyväksymiskriteerit
 
@@ -403,6 +483,10 @@ sarakkeesta, mutta älä toteuta.)
    tapahtuma.
 10. **Tuotekuva:** puhelimella otettu kuva tallentuu tuotteelle, näkyy pikkukuvana listoissa
     ja pienenee automaattisesti alle ~180 kt:n; ylisuuri tai ei-kuva torjutaan (413/400).
+11. **Ennuste:** tapahtumalle voi kirjata orgien määrän ja keston; kun kaksi aiempaa
+    tapahtumaa on valittu pohjaksi, ennuste antaa per tuote arvioidun tarpeen, varasto-
+    saldon ja ostettavan määrän molemmilla laskentatavoilla. Tapahtuma jolta puuttuu
+    orgimäärä jätetään laskennasta pois ja siitä huomautetaan.
 
 ## 16. Lukitut oletukset (toteuta näin)
 

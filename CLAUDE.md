@@ -39,11 +39,13 @@ backend/
     migrate.ts             Numeroidut SQL-migraatiot, idempotentti (schema_migrations)
     auth.ts                JWT-cookie, requireAuth / requireAdmin -middlewaret
     util.ts                asyncHandler, HttpError, errorHandler ({ error }-muoto)
-    reports.ts             buildEventReport(), consumptionReport() — SQL-summauksia
+    reports.ts             buildEventReport(), consumptionReport(), forecastReport(),
+                           totalsReport() — SQL-summauksia
     routes/                auth, users, items, locations, events, movements, reports(+stock)
   db/
     migrations/001_init.sql  Skeema + varasto_stock / location_stock -näkymät
     migrations/002_item_photos.sql  Tuotekuvat (item_photos)
+    migrations/003_event_metrics.sql Tapahtuman mitat (org_count, days) + event_metrics-näkymä
     seed.ts                  Idempotentti: admin-käyttäjä + Varasto-sijainti
 frontend/
   src/
@@ -55,7 +57,8 @@ frontend/
                            ItemPhoto (tuotekuvan otto/näyttö + ItemThumb)
     lib/format.ts          Numeroiden, päivämäärien ja kaksoisyksikön muotoilu
     lib/image.ts           Kuvan pienennys ja pakkaus selaimessa ennen lähetystä
-    pages/                 Login, Home, Inventory, ItemDetail, Log, Locations, Events, Reports, Users
+    pages/                 Login, Home, Inventory, ItemDetail, Log, Locations, Events,
+                           Reports, Forecast (kulutusennuste), Users
 scripts/                   backup.sh (pg_dump -> .sql.gz), restore.sh
 ```
 
@@ -87,6 +90,12 @@ scripts/                   backup.sh (pg_dump -> .sql.gz), restore.sh
   ~150 kt näyttökuvaksi + 256 px pikkukuvaksi, ja backend vain torjuu ylisuuret
   (400 kt / 60 kt) sekä tarkistaa tyypin taikatavuista. Näin ei tarvita `sharp`-tyyppistä
   natiivikirjastoa. Kuvat ovat tietokannassa → `scripts/backup.sh` kattaa ne.
+- **Kulutusennuste:** tapahtumaan kirjataan `org_count` (orgien määrä) ja valinnainen
+  `days`; `event_metrics`-näkymä päättelee puuttuvan keston (päivämääräväli → kulutus-
+  kirjausten päivät → 1). Ennuste = Σ kulutus / Σ orgit (tai Σ orgi-päivät) × suunniteltu
+  koko; ostettava = arvio − varastosaldo. Vain `kulutus`-tyyppi lasketaan menekiksi, ja
+  vain tapahtumat joilla on `org_count`. Ennuste ei kirjaa mitään — se on lokin luku.
+  Yksityiskohdat [SPEC.md](SPEC.md) §3.7.
 - **Saldon lasku:** näkymät `varasto_stock` ja `location_stock` [001_init.sql](backend/db/migrations/001_init.sql).
   Movements-reitit laskevat saldon transaktion sisällä uudelleen (rivilukitus `FOR UPDATE`),
   jotta rinnakkaiset kirjaukset eivät vie saldoa negatiiviseksi.
@@ -146,5 +155,7 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up -d db app
 
 ## Ei kuulu tähän versioon
 
-Offline-tila, viivakoodit, useampi varasto, toimittaja-/hinta-/kustannushallinta, ennusteet.
+Offline-tila, viivakoodit, useampi varasto, toimittaja-/hinta-/kustannushallinta.
+Kulutusennuste on toteutettu, mutta pidetään yksinkertaisena: painotettu keskiarvo
+valituista tapahtumista — ei tuoreuspainotusta eikä kausimallinnusta.
 `items`-tauluun on jätetty kommentti mahdollisesta `barcode`-sarakkeesta — ei toteuteta.
