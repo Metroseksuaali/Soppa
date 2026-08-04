@@ -103,9 +103,13 @@ export function HomePage() {
           <Calendar className="w-5 h-5 text-slate-500" />
           {t.home.events}
         </Link>
-        <Link to="/ennuste" className="card p-4 flex items-center justify-center gap-2 font-medium text-slate-700 col-span-2">
+        <Link to="/ennuste" className="card p-4 flex items-center justify-center gap-2 font-medium text-slate-700">
           <TrendingUp className="w-5 h-5 text-slate-500" />
           {t.home.forecast}
+        </Link>
+        <Link to="/tuonti" className="card p-4 flex items-center justify-center gap-2 font-medium text-slate-700">
+          <Upload className="w-5 h-5 text-slate-500" />
+          {t.home.importData}
         </Link>
         {user?.is_admin && (
           <Link to="/kayttajat" className="card p-4 flex items-center justify-center gap-2 font-medium text-slate-700 col-span-2">

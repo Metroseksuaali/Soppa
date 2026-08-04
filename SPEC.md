@@ -120,6 +120,24 @@ tapahtuman varaan rakentuva tai voimakkaasti hajoava arvio erottuu.
 Sama pohjadata palvelee vapaata tilastointia (§11): kokonaiskulutus valituista tapahtumista
 ja kertymä tapahtuma kerrallaan (esim. juuston kulutus kiloina jatkuvana lukuna).
 
+### 3.8 Historiatuonti
+
+Vanhat tapahtumat (Excel-taulukot yms.) tuodaan lokiin **päivätasolla**, jotta rakennus-
+päivien ja tapahtumapäivien ero ja menekin kehitys tapahtuman edetessä näkyvät — ei siis
+pelkkänä tapahtuman loppusummana. Rivi = tuote + päivä + määrä (+ valinnainen tyyppi
+`kulutus`/`lisays`), ja rivit leimataan **valittuun** tapahtumaan, ei aktiiviseen.
+
+- **Aikaleima:** annettu päivä klo 12 Helsingin aikaa, jolloin päiväryhmittely (§11) osuu
+  oikealle päivälle kesä- ja talviaikaan.
+- **Saldo:** oletuksena jokaiselle tuodulle kulutukselle luodaan samanpäiväinen lisäys
+  (merkintä "Historiatuonti"), jolloin nettovaikutus nykysaldoon on nolla. Tasauksen voi
+  kytkeä pois, jos tuonti sisältää myös ostomäärät `lisays`-riveinä. Kummassakin
+  tapauksessa tuonti perutaan kokonaan (409), jos jokin saldo jäisi negatiiviseksi.
+- **Peruminen:** jokainen tuonti saa erätunnisteen (`movements.import_batch`), jolla koko
+  erän voi merkitä `voided`-tilaan yhdellä toiminnolla. Rivit jäävät lokiin näkyviin.
+- Tuote tunnistetaan **nimellä**; tuntemattomat nimet raportoidaan eikä niitä luoda
+  automaattisesti (kategoria ja yksikkö vaatisivat päätöksen).
+
 ## 4. Teknologiapino (lukittu)
 
 - **Backend:** Node.js 20 + TypeScript + Express. Postgres-ajuri `pg` (suora SQL, ei
@@ -216,6 +234,7 @@ CREATE TABLE movements (
   note TEXT,
   voided BOOLEAN NOT NULL DEFAULT FALSE,
   voids_id BIGINT REFERENCES movements(id),
+  import_batch TEXT,               -- historiatuonnin erätunniste (§3.8); NULL = normaali kirjaus
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_mov_item    ON movements(item_id);
@@ -338,6 +357,14 @@ Kaikki JSON, autentikointi cookiessa. Virheet `{ error }` + HTTP-koodi.
 - `GET  /api/movements?event_id=&item_id=&type=&location_id=&from=&to=&limit=&offset=` → loki, uusin ensin
 - `POST /api/movements/:id/void` → merkitsee rivin `voided=true` (poistaa sen vaikutuksen saldosta)
 
+**Historiatuonti** (§3.8). Poikkeus yllä olevaan: rivit kirjataan annettuun tapahtumaan ja
+annetulle päivälle, ei aktiiviseen tapahtumaan eikä nykyhetkeen.
+- `POST /api/movements/import {event_id, balance_with_additions, rows:[{item_id,date,quantity,type?,note?}]}`
+  → `{batch, rows, balancing, inserted, event}`; 409 jos jokin saldo jäisi negatiiviseksi
+  (koko tuonti perutaan), 404 jos tapahtumaa tai tuotetta ei löydy
+- `GET /api/movements/imports` → tuontierät uusin ensin (rivimäärä, peruttujen määrä, aikaväli)
+- `POST /api/movements/imports/:batch/undo` → merkitsee erän rivit `voided=true`
+
 **Saldot & raportit** (§11)
 - `GET /api/stock` → varastosaldo per tuote (+ pack_size → sekundäärimäärä)
 - `GET /api/events/:id/report?group_by=day` → tapahtuman yhteenveto + päiväkohtainen kulutus
@@ -385,7 +412,10 @@ Mobile-first, isot napit, suomeksi. Alapalkki: Etusivu / Inventaario / Kirjaa / 
    per päivä) → vertailutapahtumien täppäys → per tuote arvioitu tarve, varastosaldo ja
    ostettava määrä + luottamustiedot. Samalla sivulla kulutus yhteensä ja kertymä
    valituista tapahtumista (tai koko historiasta).
-9. **Käyttäjät** (admin).
+9. **Historiatuonti:** tapahtuman valinta → rivien liittäminen taulukosta (tuote, päivä,
+   määrä) → esikatselu, joka kertoo mitkä rivit eivät kelpaa ja miksi → tuonti. Aiemmat
+   tuonnit listataan ja kukin voidaan perua kokonaan.
+10. **Käyttäjät** (admin).
 
 UX: negatiivista saldoa ei sallita — selkeä virhe. Määrät sallivat desimaalit. Inventointi
 näyttää nykysaldon esitäytettynä, käyttäjä korjaa lasketun luvun.
@@ -483,7 +513,10 @@ mallinnusta, ei automaattista tilausten lähetystä.
    tapahtuma.
 10. **Tuotekuva:** puhelimella otettu kuva tallentuu tuotteelle, näkyy pikkukuvana listoissa
     ja pienenee automaattisesti alle ~180 kt:n; ylisuuri tai ei-kuva torjutaan (413/400).
-11. **Ennuste:** tapahtumalle voi kirjata orgien määrän ja keston; kun kaksi aiempaa
+11. **Historiatuonti:** taulukosta liitetyt rivit tallentuvat annetulle päivälle ja annettuun
+    tapahtumaan, tuntematon tuotenimi tai virheellinen päivä raportoidaan tuomatta mitään,
+    ja koko tuontierän voi perua yhdellä toiminnolla.
+12. **Ennuste:** tapahtumalle voi kirjata orgien määrän ja keston; kun kaksi aiempaa
     tapahtumaa on valittu pohjaksi, ennuste antaa per tuote arvioidun tarpeen, varasto-
     saldon ja ostettavan määrän molemmilla laskentatavoilla. Tapahtuma jolta puuttuu
     orgimäärä jätetään laskennasta pois ja siitä huomautetaan.

@@ -149,6 +149,38 @@ export interface ConsumptionRow {
   maara_sekundaari: number | null;
 }
 
+// --- Historiatuonti ---
+
+export interface ImportRowInput {
+  item_id: number;
+  date: string; // VVVV-KK-PP
+  quantity: number;
+  type: 'kulutus' | 'lisays';
+  note?: string | null;
+}
+
+export interface ImportResult {
+  batch: string;
+  /** Kaikki luodut kirjaukset (tuodut rivit + tasaavat lisäykset). */
+  inserted: number;
+  /** Tuodut rivit sellaisenaan. */
+  rows: number;
+  /** Automaattisesti luodut tasaavat lisäysrivit. */
+  balancing: number;
+  event: { id: number; name: string };
+  items: number;
+}
+
+export interface ImportBatch {
+  batch: string;
+  event_id: number | null;
+  event_name: string | null;
+  rows_total: number;
+  rows_voided: number;
+  first_date: string;
+  last_date: string;
+}
+
 // --- Ennuste ---
 
 export type ForecastBasis = 'per_org' | 'per_org_day';

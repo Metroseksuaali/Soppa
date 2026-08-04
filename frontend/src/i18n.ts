@@ -19,6 +19,7 @@ export const t = {
     log: 'Kirjaa',
     reports: 'Raportit',
     forecast: 'Ennuste',
+    importData: 'Historiatuonti',
     locations: 'Sijainnit',
     events: 'Tapahtumat',
     users: 'Käyttäjät',
@@ -97,6 +98,7 @@ export const t = {
     locations: 'Sijainnit',
     events: 'Tapahtumat',
     forecast: 'Ennuste',
+    importData: 'Historiatuonti',
     users: 'Käyttäjät',
     actions: {
       lisays: 'Lisää',
@@ -262,6 +264,44 @@ export const t = {
       consumption: 'Kulutus',
       weightPlain: 'Paino',
     },
+  },
+
+  // Historiatuonti
+  importPage: {
+    title: 'Historiatuonti',
+    intro:
+      'Tuo menneen tapahtuman kulutus lokiin päivätasolla. Rivit leimataan valittuun tapahtumaan, joten päiväkohtainen erittely ja ennuste saavat oikean historian.',
+    eventTitle: '1. Tapahtuma',
+    chooseEvent: 'Valitse tapahtuma',
+    eventHint: 'Rivit kirjataan tähän tapahtumaan — ei aktiiviseen.',
+    dataTitle: '2. Rivit',
+    formatHint:
+      'Yksi rivi per tuote ja päivä: tuote, päivä, määrä — erottimena sarkain tai puolipiste. Voit liittää suoraan taulukkolaskennasta. Neljäs sarake (kulutus / lisäys) on valinnainen, oletus kulutus.',
+    example: 'Esimerkki:\nJuusto\t4.8.2026\t12\nKertismuki\t4.8.2026\t450\nJuusto\t5.8.2026\t9,5',
+    placeholder: 'Liitä rivit tähän…',
+    balanceLabel: 'Luo jokaiselle kulutukselle vastaava lisäys',
+    balanceHint:
+      'Pitää nykyisen varastosaldon ennallaan: historian kulutus ei syö tämänhetkistä saldoa. Ota pois päältä jos tuot myös ostomäärät itse lisäys-riveinä.',
+    previewTitle: '3. Esikatselu',
+    okRows: (n: number) => `${n} riviä valmiina tuotavaksi`,
+    errorRows: (n: number) => `${n} riviä ei kelpaa`,
+    missingItemsHint:
+      'Tuntemattomat tuotenimet pitää ensin luoda Inventaariossa — nimen on täsmättävä täsmälleen.',
+    lineLabel: (n: number) => `rivi ${n}`,
+    doImport: (n: number) => `Tuo ${n} riviä`,
+    importing: 'Tuodaan…',
+    nothingToImport: 'Ei kelvollisia rivejä.',
+    doneTitle: 'Tuonti valmis',
+    doneBody: (rows: number, event: string) => `${rows} riviä tapahtumaan ${event}.`,
+    doneBalancing: (n: number) => `Lisäksi ${n} tasaavaa lisäystä, jotta varastosaldo säilyi ennallaan.`,
+    toReport: 'Avaa raportti',
+    undo: 'Peru tuonti',
+    undoConfirm: 'Perutaanko koko tuontierä? Rivit jäävät lokiin peruttuina.',
+    undone: (n: number) => `${n} kirjausta peruttu.`,
+    batchesTitle: 'Aiemmat tuonnit',
+    batchRow: (rows: number, from: string, to: string) => `${rows} kirjausta · ${from}–${to}`,
+    batchVoided: 'peruttu',
+    noBatches: 'Ei tuonteja.',
   },
 
   // Kulutusennuste
