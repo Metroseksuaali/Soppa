@@ -82,6 +82,11 @@ Aseta backendin ympäristöön `COOKIE_SECURE=false` kehityksessä (http).
   Varastosaldo jatkuu tapahtumien yli. Kertaluontoinen tuote hoidetaan arkistoimalla.
 - **Void:** virheellisen kirjauksen voi perua; sen vaikutus poistuu saldosta mutta rivi jää
   lokiin näkyviin.
+- **Tuotekuva:** tuotteeseen voi liittää yhden valokuvan puhelimen kameralla — auttaa
+  erottamaan samankaltaiset tuotteet toisistaan. Pikkukuva näkyy inventaariossa ja
+  Kirjaa-näkymän tuotevalinnassa. Selain pienentää kuvan ennen lähetystä (n. 1024 px,
+  WebP), joten 5 Mt:n kamerakuvasta tallentuu ~50–150 kt; kuvat ovat tietokannassa ja
+  kulkevat siten mukana varmuuskopiossa.
 
 ## Varmuuskopiot
 
@@ -113,6 +118,7 @@ Kaikki `/api/*` (paitsi login) vaatii cookien. Vastaukset JSON, virheet `{ error
 | Auth | `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me` |
 | Käyttäjät (admin) | `GET/POST /api/users`, `PATCH /api/users/:id` |
 | Tuotteet | `GET/POST /api/items`, `GET/PATCH /api/items/:id`, `POST /api/items/:id/archive|unarchive` |
+| Tuotekuva | `PUT/DELETE /api/items/:id/photo`, `GET /api/items/:id/photo`, `GET /api/items/:id/photo/thumb` |
 | Sijainnit | `GET/POST /api/locations`, `PATCH /api/locations/:id` |
 | Tapahtumat | `GET /api/events`, `GET /api/events/active`, `POST /api/events`, `PATCH /api/events/:id`, `POST /api/events/:id/close`, `GET /api/events/:id/report` |
 | Kirjaukset | `POST /api/movements/{add,deploy,return,consume,inventory}`, `GET /api/movements`, `POST /api/movements/:id/void` |

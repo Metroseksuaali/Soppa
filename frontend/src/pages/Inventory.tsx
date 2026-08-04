@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, Item, Category } from '../api';
 import { Spinner, ErrorMsg, Modal, CategoryChip } from '../components/ui';
+import { ItemThumb } from '../components/ItemPhoto';
 import { fmtQty, parseNum } from '../lib/format';
 import { t } from '../i18n';
 
@@ -59,8 +60,9 @@ export function InventoryPage() {
       <ul className="grid gap-2 sm:grid-cols-2">
         {data?.map((item) => (
           <li key={item.id}>
-            <Link to={`/inventaario/${item.id}`} className="card p-4 flex items-center justify-between">
-              <div className="min-w-0">
+            <Link to={`/inventaario/${item.id}`} className="card p-4 flex items-center gap-3">
+              <ItemThumb item={item} />
+              <div className="min-w-0 flex-1">
                 <div className="font-semibold truncate">{item.name}</div>
                 <div className="flex items-center gap-2 mt-1">
                   <CategoryChip category={item.category} />

@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, Item, Location, MovementType } from '../api';
 import { Spinner, ErrorMsg } from '../components/ui';
+import { ItemThumb } from '../components/ItemPhoto';
 import { fmtQty, fmtNum, parseNum } from '../lib/format';
 import { t } from '../i18n';
 
@@ -133,8 +134,9 @@ export function LogPage() {
       <div className="card p-4">
         <label className="label">{t.log.step1Item}</label>
         {selectedItem ? (
-          <div className="flex items-center justify-between">
-            <div>
+          <div className="flex items-center gap-3">
+            <ItemThumb item={selectedItem} />
+            <div className="flex-1 min-w-0">
               <div className="font-semibold">{selectedItem.name}</div>
               <div className="text-sm text-slate-500">
                 {t.log.balance(fmtQty(selectedItem.stock, selectedItem.unit, selectedItem.pack_size, selectedItem.pack_unit))}
@@ -162,9 +164,10 @@ export function LogPage() {
                     setItemId(i.id);
                     setSearch('');
                   }}
-                  className="w-full text-left py-2.5 flex justify-between"
+                  className="w-full text-left py-2.5 flex items-center gap-3"
                 >
-                  <span className="font-medium">{i.name}</span>
+                  <ItemThumb item={i} size="sm" />
+                  <span className="font-medium flex-1 min-w-0 truncate">{i.name}</span>
                   <span className="text-sm text-slate-500">{fmtNum(i.stock)} {i.unit}</span>
                 </button>
               ))}
