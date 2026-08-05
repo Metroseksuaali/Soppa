@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Plus, Upload, Download, Utensils, ClipboardList, Warehouse, MapPin, Calendar, Users } from 'lucide-react';
+import { Plus, Upload, Download, Utensils, ClipboardList, Warehouse, MapPin, Calendar, TrendingUp, Layers, Users } from 'lucide-react';
 import { api, EventRow, StockRow } from '../api';
 import { useAuth } from '../auth';
 import { Spinner } from '../components/ui';
@@ -102,6 +102,18 @@ export function HomePage() {
         <Link to="/tapahtumat" className="card p-4 flex items-center justify-center gap-2 font-medium text-slate-700">
           <Calendar className="w-5 h-5 text-slate-500" />
           {t.home.events}
+        </Link>
+        <Link to="/ennuste" className="card p-4 flex items-center justify-center gap-2 font-medium text-slate-700">
+          <TrendingUp className="w-5 h-5 text-slate-500" />
+          {t.home.forecast}
+        </Link>
+        <Link to="/tuonti" className="card p-4 flex items-center justify-center gap-2 font-medium text-slate-700">
+          <Upload className="w-5 h-5 text-slate-500" />
+          {t.home.importData}
+        </Link>
+        <Link to="/tuoteryhmat" className="card p-4 flex items-center justify-center gap-2 font-medium text-slate-700 col-span-2">
+          <Layers className="w-5 h-5 text-slate-500" />
+          {t.home.groups}
         </Link>
         {user?.is_admin && (
           <Link to="/kayttajat" className="card p-4 flex items-center justify-center gap-2 font-medium text-slate-700 col-span-2">

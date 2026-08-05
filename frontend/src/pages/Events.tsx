@@ -3,13 +3,21 @@ import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, EventRow } from '../api';
 import { Spinner, ErrorMsg } from '../components/ui';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Users, CalendarRange } from 'lucide-react';
 import { fmtDateTime } from '../lib/format';
 import { t } from '../i18n';
+
+// Tyhjä syöte -> null (luku poistetaan), muuten kokonaisluku.
+function parseCount(s: string): number | null {
+  const n = parseInt(s.replace(/\s/g, ''), 10);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
 
 export function EventsPage() {
   const qc = useQueryClient();
   const [name, setName] = useState('');
+  const [orgCount, setOrgCount] = useState('');
+  const [days, setDays] = useState('');
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['events', 'list'],
@@ -21,10 +29,17 @@ export function EventsPage() {
   };
 
   const createMut = useMutation({
-    mutationFn: () => api.post('/events', { name: name.trim() }),
+    mutationFn: () =>
+      api.post('/events', {
+        name: name.trim(),
+        org_count: parseCount(orgCount),
+        days: parseCount(days),
+      }),
     onSuccess: () => {
       invalidate();
       setName('');
+      setOrgCount('');
+      setDays('');
     },
   });
 
@@ -43,20 +58,41 @@ export function EventsPage() {
       <Link to="/" className="inline-flex items-center gap-1 text-brand text-sm font-medium"><ArrowLeft className="w-4 h-4" />{t.common.backHome}</Link>
       <h1 className="text-xl font-bold">{t.events.title}</h1>
 
-      <div className="card p-4 flex gap-2">
+      <div className="card p-4 space-y-2">
         <input
           className="input"
           placeholder={t.events.newPlaceholder}
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-        <button
-          className="btn-primary px-4"
-          disabled={!name.trim() || createMut.isPending}
-          onClick={() => createMut.mutate()}
-        >
-          {t.common.create}
-        </button>
+        <div className="flex gap-2">
+          <input
+            className="input"
+            type="number"
+            min={1}
+            inputMode="numeric"
+            placeholder={t.events.newOrgPlaceholder}
+            value={orgCount}
+            onChange={(e) => setOrgCount(e.target.value)}
+          />
+          <input
+            className="input"
+            type="number"
+            min={1}
+            inputMode="numeric"
+            placeholder={t.events.newDaysPlaceholder}
+            value={days}
+            onChange={(e) => setDays(e.target.value)}
+          />
+          <button
+            className="btn-primary px-4 shrink-0"
+            disabled={!name.trim() || createMut.isPending}
+            onClick={() => createMut.mutate()}
+          >
+            {t.common.create}
+          </button>
+        </div>
+        <p className="text-xs text-slate-400">{t.events.metricsHint}</p>
       </div>
       {createMut.error && <ErrorMsg error={createMut.error} />}
 
@@ -81,6 +117,9 @@ export function EventsPage() {
                 {t.events.report}
               </Link>
             </div>
+
+            <EventMetrics event={e} onSaved={invalidate} />
+
             <div className="mt-3 flex gap-2">
               {!e.active && (
                 <button
@@ -99,6 +138,91 @@ export function EventsPage() {
           </li>
         ))}
       </ul>
+    </div>
+  );
+}
+
+// Orgien määrä + kesto: näkyvät chippeinä, muokkaus avautuu paikan päällä.
+// Nämä luvut ovat ennustelaskennan pohja (ks. Ennuste-sivu).
+function EventMetrics({ event, onSaved }: { event: EventRow; onSaved: () => void }) {
+  const [open, setOpen] = useState(false);
+  const [orgCount, setOrgCount] = useState(event.org_count?.toString() ?? '');
+  const [days, setDays] = useState(event.days_manual?.toString() ?? '');
+
+  const saveMut = useMutation({
+    mutationFn: () =>
+      api.patch(`/events/${event.id}`, {
+        org_count: parseCount(orgCount),
+        days: parseCount(days),
+      }),
+    onSuccess: () => {
+      onSaved();
+      setOpen(false);
+    },
+  });
+
+  if (!open) {
+    return (
+      <div className="mt-2 flex items-center gap-2 flex-wrap text-xs">
+        <span
+          className={`chip inline-flex items-center gap-1 ${
+            event.org_count ? 'bg-sky-100 text-sky-800' : 'bg-amber-100 text-amber-800'
+          }`}
+        >
+          <Users className="w-3.5 h-3.5" />
+          {event.org_count ? t.events.orgCountShort(event.org_count) : t.events.orgCountMissing}
+        </span>
+        <span className="chip inline-flex items-center gap-1 bg-slate-100 text-slate-700">
+          <CalendarRange className="w-3.5 h-3.5" />
+          {t.events.daysShort(event.days_effective)}
+          {event.days_manual === null && t.events.daysAuto}
+        </span>
+        <button className="text-brand font-medium" onClick={() => setOpen(true)}>
+          {t.events.editMetrics}
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="mt-2 space-y-2">
+      <div className="flex gap-2">
+        <label className="flex-1">
+          <span className="label">{t.events.orgCount}</span>
+          <input
+            className="input"
+            type="number"
+            min={1}
+            inputMode="numeric"
+            value={orgCount}
+            onChange={(e) => setOrgCount(e.target.value)}
+          />
+        </label>
+        <label className="flex-1">
+          <span className="label">{t.events.days}</span>
+          <input
+            className="input"
+            type="number"
+            min={1}
+            inputMode="numeric"
+            value={days}
+            onChange={(e) => setDays(e.target.value)}
+          />
+        </label>
+      </div>
+      <div className="flex gap-2">
+        <button
+          className="btn-primary py-2 text-sm flex-1"
+          disabled={saveMut.isPending}
+          onClick={() => saveMut.mutate()}
+        >
+          {saveMut.isPending ? t.common.saving : t.common.save}
+        </button>
+        <button className="btn-secondary py-2 text-sm flex-1" onClick={() => setOpen(false)}>
+          {t.common.back}
+        </button>
+      </div>
+      {saveMut.error && <ErrorMsg error={saveMut.error} />}
     </div>
   );
 }

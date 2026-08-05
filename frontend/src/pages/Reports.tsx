@@ -120,6 +120,12 @@ export function ReportsPage() {
                   <div className="font-medium">{it.name}</div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 mt-1 text-sm">
                     <Stat label={t.reports.added} value={fmtQty(it.added, it.unit, it.pack_size, it.pack_unit)} />
+                    {it.added_sponsored > 0 && (
+                      <Stat
+                        label={t.reports.addedSponsored}
+                        value={fmtQty(it.added_sponsored, it.unit, it.pack_size, it.pack_unit)}
+                      />
+                    )}
                     <Stat label={t.reports.consumed} value={fmtQty(it.consumed, it.unit, it.pack_size, it.pack_unit)} />
                     <Stat label={t.reports.outNow} value={fmtQty(it.out_now, it.unit, it.pack_size, it.pack_unit)} />
                     <Stat label={t.reports.stockNow} value={fmtQty(it.stock_now, it.unit, it.pack_size, it.pack_unit)} />

@@ -29,6 +29,7 @@ export function LogPage() {
   const [counted, setCounted] = useState('');
   const [locationId, setLocationId] = useState<number | null>(null);
   const [note, setNote] = useState('');
+  const [sponsored, setSponsored] = useState(false);
   const [done, setDone] = useState<string | null>(null);
   const [search, setSearch] = useState('');
 
@@ -75,7 +76,12 @@ export function LogPage() {
       const c = parseNum(counted);
       switch (action) {
         case 'lisays':
-          return api.post('/movements/add', { item_id: itemId, quantity: q, note: note || null });
+          return api.post('/movements/add', {
+            item_id: itemId,
+            quantity: q,
+            note: note || null,
+            sponsored,
+          });
         case 'vienti':
           return api.post('/movements/deploy', { item_id: itemId, location_id: locationId, quantity: q, note: note || null });
         case 'palautus':
@@ -100,6 +106,7 @@ export function LogPage() {
       setQuantity('');
       setCounted('');
       setNote('');
+      setSponsored(false);
     },
   });
 
@@ -254,6 +261,22 @@ export function LogPage() {
                   ))}
                 </select>
               </div>
+            )}
+
+            {/* Sponsorius koskee vain saapuvaa tavaraa. */}
+            {action === 'lisays' && (
+              <label className="flex items-start gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  className="h-5 w-5 mt-0.5 shrink-0"
+                  checked={sponsored}
+                  onChange={(e) => setSponsored(e.target.checked)}
+                />
+                <span>
+                  <span className="font-medium">{t.log.sponsored}</span>
+                  <span className="block text-xs text-slate-400">{t.log.sponsoredHint}</span>
+                </span>
+              </label>
             )}
 
             <div>

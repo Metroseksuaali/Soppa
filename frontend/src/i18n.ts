@@ -18,6 +18,9 @@ export const t = {
     inventory: 'Inventaario',
     log: 'Kirjaa',
     reports: 'Raportit',
+    forecast: 'Ennuste',
+    importData: 'Historiatuonti',
+    groups: 'Tuoteryhmät',
     locations: 'Sijainnit',
     events: 'Tapahtumat',
     users: 'Käyttäjät',
@@ -95,6 +98,9 @@ export const t = {
     outOfStock: 'Loppu varastosta',
     locations: 'Sijainnit',
     events: 'Tapahtumat',
+    forecast: 'Ennuste',
+    importData: 'Historiatuonti',
+    groups: 'Tuoteryhmät',
     users: 'Käyttäjät',
     actions: {
       lisays: 'Lisää',
@@ -124,6 +130,11 @@ export const t = {
     packUnitPlaceholder: 'kg, l',
     noteLabel: 'Muistiinpano (valinn.)',
     create: 'Luo tuote',
+    group: 'Tuoteryhmä (valinn.)',
+    noGroup: '— ei ryhmää —',
+    groupHint: 'Ryhmä yhdistää saman tarpeen eri brändit ennusteessa (esim. "Juusto").',
+    groupIncompatible: (base: string) =>
+      `Huom: tuotteen määrää ei voi muuntaa ryhmän perusyksikköön (${base}). Lisää pakkauskoko, tai tuote jää ryhmäsumman ulkopuolelle.`,
   },
 
   // Tuotenäkymä
@@ -178,6 +189,9 @@ export const t = {
     chooseLocation: 'Valitse sijainti',
     confirm: (type: string) => `Vahvista: ${type}`,
     chooseItemError: 'Valitse tuote',
+    sponsored: 'Sponsorilahjoitus',
+    sponsoredHint:
+      'Tästä erästä ei maksettu. Saldo kasvaa ja kulutus lasketaan ennusteeseen aivan kuten ostetusta tavarasta — merkintä kertoo vain, että tarve katettiin lahjoituksella.',
   },
 
   // Sijainnit
@@ -221,6 +235,41 @@ export const t = {
     report: 'Raportti',
     activate: 'Aseta aktiiviseksi',
     close: 'Sulje tapahtuma',
+    // Ennustelaskennan mitat
+    orgCount: 'Orgeja',
+    orgCountShort: (n: number) => `${n} orgia`,
+    orgCountMissing: 'Orgien määrä puuttuu',
+    days: 'Kestoa (pv)',
+    daysShort: (n: number) => `${n} pv`,
+    daysAuto: ' (arvio)',
+    metricsHint: 'Orgien määrä ja kesto tarkentavat kulutusennustetta.',
+    metricsSaved: 'Tallennettu',
+    editMetrics: 'Muokkaa mittoja',
+    newOrgPlaceholder: 'Orgeja',
+    newDaysPlaceholder: 'Kesto (pv)',
+  },
+
+  // Tuoteryhmät
+  groups: {
+    title: 'Tuoteryhmät',
+    intro:
+      'Ryhmä kokoaa saman tarpeen eri brändit ja pakkauskoot yhteen: "Juusto" voi sisältää Arki juustoviipaleen ja Oltermannin. Ennuste ja raportit voivat laskea ryhmän yhtenä lukuna.',
+    newPlaceholder: 'Uuden ryhmän nimi',
+    baseUnit: 'Perusyksikkö',
+    baseUnitHint:
+      'Yksikkö johon ryhmän tuotteet muunnetaan. Tuotteella pitää olla pakkauskoko tässä yksikössä (esim. 500 g pkt → 0,5 kg), tai sen oma yksikkö on jo sama.',
+    itemCount: (n: number) => (n === 1 ? '1 tuote' : `${n} tuotetta`),
+    incompatibleCount: (n: number) => `${n} ei yhteismitallinen`,
+    hiddenTag: 'Piilotettu',
+    hide: 'Piilota',
+    show: 'Näytä',
+    rename: 'Nimeä uudelleen',
+    members: 'Ryhmän tuotteet',
+    noMembers: 'Ei tuotteita tässä ryhmässä.',
+    factor: (itemUnit: string, factor: string, baseUnit: string) =>
+      `1 ${itemUnit} = ${factor} ${baseUnit}`,
+    factorMissing: 'Yksikköä ei voi muuntaa',
+    empty: 'Ei tuoteryhmiä.',
   },
 
   // Käyttäjät
@@ -250,6 +299,7 @@ export const t = {
     perItem: 'Yhteenveto per tuote',
     noMovements: 'Ei kirjauksia tässä tapahtumassa.',
     added: 'Lisätty',
+    addedSponsored: 'Tästä sponsorilta',
     consumed: 'Kulutettu',
     outNow: 'Ulkona nyt',
     stockNow: 'Varastosaldo',
@@ -268,5 +318,127 @@ export const t = {
       consumption: 'Kulutus',
       weightPlain: 'Paino',
     },
+  },
+
+  // Historiatuonti
+  importPage: {
+    title: 'Historiatuonti',
+    intro:
+      'Tuo menneen tapahtuman kulutus lokiin päivätasolla. Rivit leimataan valittuun tapahtumaan, joten päiväkohtainen erittely ja ennuste saavat oikean historian.',
+    eventTitle: '1. Tapahtuma',
+    chooseEvent: 'Valitse tapahtuma',
+    eventHint: 'Rivit kirjataan tähän tapahtumaan — ei aktiiviseen.',
+    dataTitle: '2. Rivit',
+    formatHint:
+      'Yksi rivi per tuote ja päivä: tuote, päivä, määrä — erottimena sarkain tai puolipiste. Voit liittää suoraan taulukkolaskennasta. Neljäs sarake (kulutus / lisäys) on valinnainen, oletus kulutus. Viides sarake "sponsori" merkitsee lisäyksen lahjoitukseksi.',
+    example: 'Esimerkki:\nJuusto\t4.8.2026\t12\nKertismuki\t4.8.2026\t450\nJuusto\t5.8.2026\t9,5',
+    placeholder: 'Liitä rivit tähän…',
+    balanceLabel: 'Luo jokaiselle kulutukselle vastaava lisäys',
+    balanceHint:
+      'Pitää nykyisen varastosaldon ennallaan: historian kulutus ei syö tämänhetkistä saldoa. Ota pois päältä jos tuot myös ostomäärät itse lisäys-riveinä.',
+    previewTitle: '3. Esikatselu',
+    okRows: (n: number) => `${n} riviä valmiina tuotavaksi`,
+    errorRows: (n: number) => `${n} riviä ei kelpaa`,
+    missingItemsHint:
+      'Tuntemattomat tuotenimet pitää ensin luoda Inventaariossa — nimen on täsmättävä täsmälleen.',
+    lineLabel: (n: number) => `rivi ${n}`,
+    doImport: (n: number) => `Tuo ${n} riviä`,
+    importing: 'Tuodaan…',
+    nothingToImport: 'Ei kelvollisia rivejä.',
+    doneTitle: 'Tuonti valmis',
+    doneBody: (rows: number, event: string) => `${rows} riviä tapahtumaan ${event}.`,
+    doneBalancing: (n: number) => `Lisäksi ${n} tasaavaa lisäystä, jotta varastosaldo säilyi ennallaan.`,
+    toReport: 'Avaa raportti',
+    undo: 'Peru tuonti',
+    undoConfirm: 'Perutaanko koko tuontierä? Rivit jäävät lokiin peruttuina.',
+    undone: (n: number) => `${n} kirjausta peruttu.`,
+    batchesTitle: 'Aiemmat tuonnit',
+    batchRow: (rows: number, from: string, to: string) => `${rows} kirjausta · ${from}–${to}`,
+    batchVoided: 'peruttu',
+    noBatches: 'Ei tuonteja.',
+  },
+
+  // Kulutusennuste
+  forecast: {
+    title: 'Kulutusennuste',
+    intro:
+      'Arvioi tulevan tapahtuman tarve aiempien tapahtumien menekistä. Kulutus suhteutetaan orgien määrään, joten eri kokoiset tapahtumat ovat vertailukelpoisia.',
+
+    planTitle: '1. Suunniteltu tapahtuma',
+    orgCount: 'Orgien määrä',
+    days: 'Kesto (päivää)',
+
+    basisTitle: '2. Laskentatapa',
+    basisPerOrg: 'Per orgi',
+    basisPerOrgDay: 'Per orgi / päivä',
+    basisPerOrgHint: 'Kulutus / orgi × suunnitellut orgit. Kesto vaikuttaa vain välillisesti.',
+    basisPerOrgDayHint:
+      'Kulutus / orgi / päivä × orgit × päivät. Tarkempi, jos vertailutapahtumat ovat eri mittaisia.',
+
+    eventsTitle: '3. Vertailutapahtumat',
+    eventsHint: 'Jätä poikkeukselliset tapahtumat pois, niin keskiarvo ei vääristy.',
+    selectAll: 'Valitse kaikki',
+    selectNone: 'Tyhjennä',
+    noOrgCount: 'ei orgimäärää',
+    skippedNotice: (names: string) =>
+      `Ei mukana laskennassa (orgien määrä puuttuu): ${names}. Lisää luku Tapahtumat-sivulla.`,
+    category: 'Kategoria',
+    allCategories: 'Kaikki',
+    calculate: 'Laske ennuste',
+    calculating: 'Lasketaan…',
+    needEvents: 'Valitse vähintään yksi vertailutapahtuma, jossa on orgien määrä.',
+    needOrgCount: 'Syötä suunnitellun tapahtuman orgien määrä.',
+
+    resultTitle: 'Arvio ja ostettava määrä',
+    estimate: 'Arvioitu tarve',
+    stockNow: 'Varastossa',
+    toBuy: 'Ostettava',
+    enough: 'Riittää varastosta',
+    noData: 'Valituista tapahtumista ei löydy kulutuskirjauksia.',
+    archivedTag: 'Arkistoitu',
+
+    // Yhden tapahtuman kohdalla "viime kerralla" on luettavampi kuin "1/1 tapahtumaa".
+    confidence: (used: number, total: number) =>
+      used === 1 && total === 1 ? 'Viime kerran perusteella' : `${used}/${total} tapahtumaa pohjana`,
+
+    // Sponsoriosuus. Sanamuoto riippuu siitä montako tapahtumaa on pohjana:
+    // yksi -> "viime kerralla", useampi -> "aikaisemmin keskimäärin".
+    sponsoredLine: (amount: string, events: number) =>
+      events === 1
+        ? `viime kerralla sponsorilta ${amount}`
+        : `aikaisemmin keskimäärin sponsorilta ${amount} (${events} tapahtumaa)`,
+    sponsoredTag: 'Sponsori',
+    sponsoredHint:
+      'Sponsorien tuoma tavara on mukana tarpeessa täysimääräisesti — jos sponsoria ei ensi kerralla ole, tarve on silti sama ja ostettava määrä kasvaa vastaavasti.',
+    spread: (min: string, max: string, unit: string, per: string) =>
+      `Vaihteluväli ${min}–${max} ${unit} ${per}`,
+    lowConfidence: 'Vain yksi tapahtuma pohjana — arvio epävarma.',
+    highSpread: 'Suuri hajonta tapahtumien välillä — arvio epävarma.',
+    showHistory: 'Näytä pohjadata',
+    hideHistory: 'Piilota pohjadata',
+    historyRow: (orgs: number, days: number) => `${orgs} orgia · ${days} pv`,
+    perOrgLabel: '/ orgi',
+    perOrgDayLabel: '/ orgi / pv',
+
+    // Ryhmätaso
+    levelGroup: 'Ryhmittäin',
+    levelItem: 'Tuotteittain',
+    levelHint:
+      'Ryhmittäin-näkymä yhdistää brändit ja pakkauskoot (esim. kaikki juustot kiloina). Ostopäätös tehdään yleensä tällä tasolla.',
+    ungrouped: 'Ei ryhmää',
+    ungroupedHint: 'Näille tuotteille ei ole valittu tuoteryhmää — ennuste lasketaan tuotekohtaisesti.',
+    groupMembers: (n: number) => (n === 1 ? '1 tuote' : `${n} tuotetta`),
+    incompatible: (names: string) =>
+      `Ei mukana ryhmäsummassa (yksikköä ei voi muuntaa): ${names}. Lisää tuotteelle pakkauskoko ryhmän perusyksikössä.`,
+    noGroups: 'Yhtään tuoteryhmää ei ole vielä luotu.',
+    manageGroups: 'Hallitse tuoteryhmiä',
+
+    statsTitle: 'Kulutus yhteensä',
+    statsHint: 'Valittujen tapahtumien yhteenlaskettu menekki — ja kertymä tapahtuma kerrallaan.',
+    statsAllTime: 'Koko historia',
+    statsSelected: 'Valitut tapahtumat',
+    statsEmpty: 'Ei kulutuskirjauksia.',
+    cumulative: 'Kertymä',
+    noEvent: 'Ei tapahtumaa',
   },
 };

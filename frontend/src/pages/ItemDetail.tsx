@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, ItemDetail } from '../api';
+import { api, ItemDetail, ItemGroup } from '../api';
 import { Spinner, ErrorMsg, Modal, CategoryChip } from '../components/ui';
 import { ItemPhoto } from '../components/ItemPhoto';
 import { ArrowLeft } from 'lucide-react';
@@ -124,6 +124,9 @@ export function ItemDetailPage() {
                   <div className="font-medium text-sm">
                     {t.movementTypes[m.type]}
                     {m.location_name && <span className="text-slate-400"> · {m.location_name}</span>}
+                    {m.sponsored && (
+                      <span className="chip bg-violet-100 text-violet-800 ml-2">{t.forecast.sponsoredTag}</span>
+                    )}
                     {m.voided && <span className="text-red-500 ml-1">{t.item.voided}</span>}
                   </div>
                   <div className="text-xs text-slate-400">
@@ -170,6 +173,18 @@ function EditItemModal({ open, onClose, item }: { open: boolean; onClose: () => 
   const [packUnit, setPackUnit] = useState(item.pack_unit ?? '');
   const [returnable, setReturnable] = useState(item.returnable);
   const [note, setNote] = useState(item.note ?? '');
+  const [groupId, setGroupId] = useState<number | ''>(item.group_id ?? '');
+
+  const { data: groups } = useQuery({
+    queryKey: ['groups', 'active'],
+    queryFn: () => api.get<ItemGroup[]>('/groups'),
+  });
+  const chosenGroup = groups?.find((g) => g.id === groupId) ?? null;
+  const packNum = packSize ? parseNum(packSize) : null;
+  const groupMismatch =
+    chosenGroup !== null &&
+    unit.trim() !== chosenGroup.base_unit &&
+    !(packUnit.trim() === chosenGroup.base_unit && packNum && packNum > 0);
 
   const mut = useMutation({
     mutationFn: () =>
@@ -180,10 +195,12 @@ function EditItemModal({ open, onClose, item }: { open: boolean; onClose: () => 
         pack_unit: packUnit.trim() || null,
         returnable,
         note: note.trim() || null,
+        group_id: groupId === '' ? null : groupId,
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['item', String(item.id)] });
       qc.invalidateQueries({ queryKey: ['items'] });
+      qc.invalidateQueries({ queryKey: ['groups'] });
       onClose();
     },
   });
@@ -226,6 +243,26 @@ function EditItemModal({ open, onClose, item }: { open: boolean; onClose: () => 
             <label className="label">{t.common.packUnit}</label>
             <input className="input" value={packUnit} onChange={(e) => setPackUnit(e.target.value)} />
           </div>
+        </div>
+        <div>
+          <label className="label">{t.itemForm.group}</label>
+          <select
+            className="input"
+            value={groupId}
+            onChange={(e) => setGroupId(e.target.value ? parseInt(e.target.value, 10) : '')}
+          >
+            <option value="">{t.itemForm.noGroup}</option>
+            {groups?.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name} ({g.base_unit})
+              </option>
+            ))}
+          </select>
+          {groupMismatch && (
+            <p className="text-xs text-amber-700 mt-1">
+              {t.itemForm.groupIncompatible(chosenGroup!.base_unit)}
+            </p>
+          )}
         </div>
         <div>
           <label className="label">{t.common.note}</label>

@@ -39,11 +39,13 @@ itemsRouter.get(
     const { rows } = await query(
       `SELECT i.id, i.name, i.category, i.unit, i.pack_size, i.pack_unit,
               i.returnable, i.archived, i.note, i.created_at,
+              i.group_id, f.group_name, f.base_unit AS group_base_unit, f.factor AS group_factor,
               COALESCE(vs.qty, 0) AS stock,
               (p.item_id IS NOT NULL) AS has_photo, p.updated_at AS photo_updated_at
        FROM items i
        LEFT JOIN varasto_stock vs ON vs.item_id = i.id
        LEFT JOIN item_photos p ON p.item_id = i.id
+       LEFT JOIN item_group_factor f ON f.item_id = i.id
        ${where}
        ORDER BY i.name`,
       params
@@ -60,6 +62,7 @@ const createSchema = z.object({
   pack_unit: z.string().min(1).nullable().optional(),
   returnable: z.boolean(),
   note: z.string().nullable().optional(),
+  group_id: z.number().int().positive().nullable().optional(),
 });
 
 itemsRouter.post(
@@ -67,10 +70,20 @@ itemsRouter.post(
   asyncHandler(async (req, res) => {
     const b = createSchema.parse(req.body);
     const { rows } = await query(
-      `INSERT INTO items (name, category, unit, pack_size, pack_unit, returnable, note, created_by)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       RETURNING id, name, category, unit, pack_size, pack_unit, returnable, archived, note, created_at`,
-      [b.name, b.category, b.unit, b.pack_size ?? null, b.pack_unit ?? null, b.returnable, b.note ?? null, req.user!.id]
+      `INSERT INTO items (name, category, unit, pack_size, pack_unit, returnable, note, group_id, created_by)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+       RETURNING id, name, category, unit, pack_size, pack_unit, returnable, archived, note, group_id, created_at`,
+      [
+        b.name,
+        b.category,
+        b.unit,
+        b.pack_size ?? null,
+        b.pack_unit ?? null,
+        b.returnable,
+        b.note ?? null,
+        b.group_id ?? null,
+        req.user!.id,
+      ]
     );
     res.status(201).json({ ...rows[0], stock: 0, has_photo: false, photo_updated_at: null });
   })
@@ -83,6 +96,7 @@ const patchSchema = z.object({
   pack_unit: z.string().min(1).nullable().optional(),
   returnable: z.boolean().optional(),
   note: z.string().nullable().optional(),
+  group_id: z.number().int().positive().nullable().optional(),
 });
 
 itemsRouter.patch(
@@ -93,7 +107,7 @@ itemsRouter.patch(
     const sets: string[] = [];
     const params: any[] = [];
     let i = 1;
-    for (const key of ['name', 'unit', 'pack_size', 'pack_unit', 'returnable', 'note'] as const) {
+    for (const key of ['name', 'unit', 'pack_size', 'pack_unit', 'returnable', 'note', 'group_id'] as const) {
       if (b[key] !== undefined) {
         sets.push(`${key} = $${i++}`);
         params.push(b[key]);
@@ -103,7 +117,7 @@ itemsRouter.patch(
     params.push(id);
     const { rows } = await query(
       `UPDATE items SET ${sets.join(', ')} WHERE id = $${i}
-       RETURNING id, name, category, unit, pack_size, pack_unit, returnable, archived, note, created_at,
+       RETURNING id, name, category, unit, pack_size, pack_unit, returnable, archived, note, group_id, created_at,
                  EXISTS (SELECT 1 FROM item_photos p WHERE p.item_id = items.id) AS has_photo,
                  (SELECT p.updated_at FROM item_photos p WHERE p.item_id = items.id) AS photo_updated_at`,
       params
@@ -141,11 +155,13 @@ itemsRouter.get(
     const itemRes = await query(
       `SELECT i.id, i.name, i.category, i.unit, i.pack_size, i.pack_unit,
               i.returnable, i.archived, i.note, i.created_at,
+              i.group_id, f.group_name, f.base_unit AS group_base_unit, f.factor AS group_factor,
               COALESCE(vs.qty, 0) AS stock,
               (p.item_id IS NOT NULL) AS has_photo, p.updated_at AS photo_updated_at
        FROM items i
        LEFT JOIN varasto_stock vs ON vs.item_id = i.id
        LEFT JOIN item_photos p ON p.item_id = i.id
+       LEFT JOIN item_group_factor f ON f.item_id = i.id
        WHERE i.id = $1`,
       [id]
     );
@@ -166,7 +182,7 @@ itemsRouter.get(
     const histRes = await query(
       `SELECT m.id, m.type, m.quantity, m.counted, m.location_id, l.name AS location_name,
               m.event_id, e.name AS event_name, m.user_id, u.display_name AS user_name,
-              m.note, m.voided, m.voids_id, m.created_at
+              m.note, m.voided, m.voids_id, m.sponsored, m.created_at
        FROM movements m
        LEFT JOIN locations l ON l.id = m.location_id
        LEFT JOIN events e ON e.id = m.event_id

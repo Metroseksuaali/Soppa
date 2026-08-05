@@ -11,6 +11,9 @@ import { LocationsPage } from './pages/Locations';
 import { LocationDetailPage } from './pages/LocationDetail';
 import { EventsPage } from './pages/Events';
 import { ReportsPage } from './pages/Reports';
+import { ForecastPage } from './pages/Forecast';
+import { ImportPage } from './pages/Import';
+import { GroupsPage } from './pages/Groups';
 import { UsersPage } from './pages/Users';
 
 function Protected({ children }: { children: JSX.Element }) {
@@ -33,6 +36,9 @@ export default function App() {
       <Route path="/sijainnit/:id" element={<Protected><LocationDetailPage /></Protected>} />
       <Route path="/tapahtumat" element={<Protected><EventsPage /></Protected>} />
       <Route path="/raportit" element={<Protected><ReportsPage /></Protected>} />
+      <Route path="/ennuste" element={<Protected><ForecastPage /></Protected>} />
+      <Route path="/tuonti" element={<Protected><ImportPage /></Protected>} />
+      <Route path="/tuoteryhmat" element={<Protected><GroupsPage /></Protected>} />
       <Route path="/kayttajat" element={<Protected><UsersPage /></Protected>} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
