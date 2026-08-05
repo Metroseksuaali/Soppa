@@ -170,6 +170,38 @@ export const t = {
     alt: (name: string) => `Kuva tuotteesta ${name}`,
   },
 
+  // Viivakoodi (skannaus kameralla + käsin syöttö)
+  barcode: {
+    title: 'Viivakoodit',
+    scan: 'Skannaa',
+    scanTitle: 'Skannaa viivakoodi',
+    aim: 'Kohdista viivakoodi kameraan.',
+    manualLabel: 'Tai kirjoita koodi',
+    manualPlaceholder: 'esim. 6408430000012',
+    manualSubmit: 'Hae',
+    starting: 'Käynnistetään kameraa…',
+    // Selaimissa joissa ei ole omaa viivakoodilukijaa (iPhone, Firefox) ladataan lukija
+    // erikseen — kerrotaan miksi ensimmäinen avaus kestää hetken.
+    loadingDecoder: 'Ladataan viivakoodilukijaa…',
+    decoderFailed: 'Viivakoodilukijan lataus epäonnistui. Kirjoita koodi käsin.',
+    // Kameran esto on tavallisin virhe — kerrotaan mitä tehdä, ei vain että meni pieleen.
+    denied: 'Kameraa ei saatu käyttöön. Salli kamera selaimen asetuksista, tai kirjoita koodi käsin.',
+    noCamera: 'Kameraa ei löytynyt. Kirjoita koodi käsin.',
+    noCameraApi: 'Tämä selain ei anna pääsyä kameraan. Kirjoita koodi käsin.',
+    insecure: 'Kamera vaatii HTTPS-yhteyden. Kirjoita koodi käsin.',
+    notFound: (code: string) => `Viivakoodia ${code} ei ole liitetty mihinkään tuotteeseen.`,
+    notFoundHint: 'Avaa oikea tuote ja liitä koodi sille — sen jälkeen skannaus löytää sen.',
+    archivedItem: (name: string) => `Tuote ${name} on arkistoitu — palauta se käyttöön tuotesivulta.`,
+    lookupFailed: 'Koodin haku epäonnistui.',
+    // Tuotenäkymän kortti
+    none: 'Ei viivakoodeja.',
+    hint: 'Liitä tuotteen pakkauksen viivakoodi, niin sen löytää kirjatessa skannaamalla.',
+    add: 'Lisää koodi',
+    added: (code: string) => `Viivakoodi ${code} liitetty.`,
+    removeConfirm: (code: string) => `Poistetaanko viivakoodi ${code}?`,
+    remove: 'Poista viivakoodi',
+  },
+
   // Kirjaa-näkymä
   log: {
     title: 'Kirjaa',

@@ -127,9 +127,25 @@ export interface Movement {
   created_at: string;
 }
 
+export interface Barcode {
+  code: string;
+  created_at: string;
+}
+
 export interface ItemDetail extends Item {
   locations: LocationDist[];
   history: Movement[];
+  barcodes: Barcode[];
+}
+
+/** Viivakoodi → tuote. null = koodia ei ole liitetty mihinkään tuotteeseen. */
+export async function lookupBarcode(code: string): Promise<Item | null> {
+  try {
+    return await api.get<Item>(`/items/lookup?code=${encodeURIComponent(code)}`);
+  } catch (e) {
+    if (e instanceof ApiError && e.status === 404) return null;
+    throw e;
+  }
 }
 
 export interface Location {

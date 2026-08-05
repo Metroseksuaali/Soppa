@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, Item, Location, MovementType } from '../api';
+import { api, lookupBarcode, Item, Location, MovementType } from '../api';
 import { Spinner, ErrorMsg } from '../components/ui';
 import { ItemThumb } from '../components/ItemPhoto';
+import { ScanButton } from '../components/BarcodeScanner';
 import { fmtQty, fmtNum, parseNum } from '../lib/format';
 import { t } from '../i18n';
 
@@ -32,6 +33,7 @@ export function LogPage() {
   const [sponsored, setSponsored] = useState(false);
   const [done, setDone] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [scanMsg, setScanMsg] = useState<{ text: string; hint?: string } | null>(null);
 
   const { data: items, isLoading: itemsLoading } = useQuery({
     queryKey: ['items', 'all-active'],
@@ -117,6 +119,27 @@ export function LogPage() {
       (!actionCfg.returnableOnly || i.returnable)
   );
 
+  // Viivakoodi vain valitsee tuotteen — määrä ja toiminto kysytään kuten ennenkin.
+  async function onScan(code: string) {
+    setScanMsg(null);
+    try {
+      const found = await lookupBarcode(code);
+      if (!found) {
+        setScanMsg({ text: t.barcode.notFound(code), hint: t.barcode.notFoundHint });
+        return;
+      }
+      // Kirjata voi vain aktiivisia tuotteita; arkistoitu ei ole valintalistalla.
+      if (!(items ?? []).some((i) => i.id === found.id)) {
+        setScanMsg({ text: t.barcode.archivedItem(found.name) });
+        return;
+      }
+      setItemId(found.id);
+      setSearch('');
+    } catch {
+      setScanMsg({ text: t.barcode.lookupFailed });
+    }
+  }
+
   const canSubmit =
     !!itemId &&
     (action === 'inventointi' ? counted !== '' : quantity !== '' && parseNum(quantity) > 0) &&
@@ -151,18 +174,34 @@ export function LogPage() {
                 {selectedItem.returnable ? t.common.returnable : t.common.consumable}
               </div>
             </div>
-            <button className="text-brand text-sm font-medium" onClick={() => setItemId(null)}>
+            <button
+              className="text-brand text-sm font-medium"
+              onClick={() => {
+                setItemId(null);
+                setScanMsg(null);
+              }}
+            >
               {t.log.change}
             </button>
           </div>
         ) : (
           <div>
-            <input
-              className="input mb-2"
-              placeholder={t.inventory.search}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+            <div className="flex gap-2 mb-2">
+              <input
+                className="input"
+                placeholder={t.inventory.search}
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              <ScanButton onDetect={onScan} />
+            </div>
+
+            {scanMsg && (
+              <div className="rounded-xl bg-amber-50 text-amber-800 px-3 py-2 text-sm mb-2">
+                {scanMsg.text}
+                {scanMsg.hint && <span className="block text-xs mt-1">{scanMsg.hint}</span>}
+              </div>
+            )}
             <div className="max-h-56 overflow-y-auto divide-y divide-slate-100">
               {filteredItems.map((i) => (
                 <button

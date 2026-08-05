@@ -8,6 +8,12 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg'],
+      workbox: {
+        // Viivakoodilukijan wasm (~1 Mt) ei kuulu esilatattavaan pakettiin: sitä tarvitsee
+        // vain se osa käyttäjistä jolla ei ole selaimen omaa lukijaa (iPhone), ja heillekin
+        // vasta kun skanneri avataan. Selain hakee sen silloin normaalisti verkosta.
+        globIgnores: ['**/*.wasm'],
+      },
       manifest: {
         name: 'Soppa — Catering-varastonhallinta',
         short_name: 'Soppa',

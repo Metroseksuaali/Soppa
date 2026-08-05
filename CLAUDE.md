@@ -20,7 +20,7 @@ mihin tapahtumaan), ja raportit ovat pelkkää lokin suodatusta.
 |--------|-----------|
 | Backend | Node 20 + TypeScript + Express, `pg` (suora SQL, ei ORM:ää), `bcrypt`, JWT httpOnly-cookiessa, `zod`, `helmet` |
 | Tietokanta | PostgreSQL 16 |
-| Frontend | React 18 + TypeScript + Vite, react-router-dom, Tailwind, TanStack Query, PWA |
+| Frontend | React 18 + TypeScript + Vite, react-router-dom, Tailwind, TanStack Query, PWA, `zxing-wasm` (vain viivakoodin varalukija, ladataan dynaamisesti) |
 | Paketointi | Docker Compose; backend tarjoilee API:n + buildatun frontendin samasta portista; Caddy = reverse proxy + automaattinen TLS |
 
 ## Repo-rakenne
@@ -48,6 +48,7 @@ backend/
     migrations/003_event_metrics.sql Tapahtuman mitat (org_count, days) + event_metrics-näkymä
     migrations/004_movement_import.sql Historiatuonnin erätunniste (movements.import_batch)
     migrations/005_item_groups.sql  Tuoteryhmät + sponsorimerkintä + item_group_factor
+    migrations/006_item_barcodes.sql Viivakoodit (item_barcodes)
     seed.ts                  Idempotentti: admin-käyttäjä + Varasto-sijainti
 frontend/
   src/
@@ -56,9 +57,11 @@ frontend/
     auth.tsx               AuthProvider / useAuth (react-query /auth/me)
     App.tsx                Reititys + Protected-wrapper
     components/            Layout (alapalkki+yläpalkki), ui (Spinner/Modal/chipit),
-                           ItemPhoto (tuotekuvan otto/näyttö + ItemThumb)
+                           ItemPhoto (tuotekuvan otto/näyttö + ItemThumb),
+                           BarcodeScanner (kameraluku + käsin syöttö, ScanButton)
     lib/format.ts          Numeroiden, päivämäärien ja kaksoisyksikön muotoilu
     lib/image.ts           Kuvan pienennys ja pakkaus selaimessa ennen lähetystä
+    lib/barcodeDecoder.ts  zxing-wasm-varalukija (dynaaminen lataus, itse tarjoiltu wasm)
     pages/                 Login, Home, Inventory, ItemDetail, Log, Locations, LocationDetail,
                            Events, Reports, Forecast (kulutusennuste),
                            Import (historiatuonti), Groups (tuoteryhmät), Users
@@ -117,6 +120,17 @@ scripts/                   backup.sh (pg_dump -> .sql.gz), restore.sh
   **kirjauksen** ominaisuus (`movements.sponsored`, vain `lisays`), ei tuotteen — sama
   tuote voi olla kerran lahjoitus ja kerran ostettu. Sponsoroitu tavara lasketaan
   ennusteeseen normaalisti; se näkyy erillisenä lukuna. [SPEC.md](SPEC.md) §3.8.
+- **Viivakoodi:** vaihtoehtoinen tapa löytää tuote (`item_barcodes`, `code` on pääavain →
+  yksi koodi osoittaa aina yhteen tuotteeseen; 409 jos koodi on jo toisella). Koodi ei
+  kirjaa mitään eikä vaikuta saldoon — se korvaa vain nimellä etsimisen. Normalisointi
+  (välit pois, isot kirjaimet) tehdään backendissä, jotta kamera, käsiskanneri ja käsin
+  kirjoitus tuottavat saman avaimen. Kameraluvussa on **kaksi moottoria**: selaimen oma
+  `BarcodeDetector` kun se löytyy (Android Chrome), muuten `zxing-wasm` dynaamisesti
+  ladattuna (iOS-Safari, Firefox — iPhonessa kaikki selaimet ovat WebKitiä, joten omaa
+  lukijaa ei ole). Wasm (~1 Mt) ladataan vasta kun skanneri avataan sellaisessa selaimessa,
+  se tarjoillaan omasta `/assets`ista (ei CDN:ää) ja on jätetty PWA:n esilatauksen
+  ulkopuolelle (`globIgnores`, [vite.config.ts](frontend/vite.config.ts)). Käsin syöttö on
+  aina näkyvissä — älä piilota sitä fallbackiksi. [SPEC.md](SPEC.md) §3.10.
 - **Saldon lasku:** näkymät `varasto_stock` ja `location_stock` [001_init.sql](backend/db/migrations/001_init.sql).
   Movements-reitit laskevat saldon transaktion sisällä uudelleen (rivilukitus `FOR UPDATE`),
   jotta rinnakkaiset kirjaukset eivät vie saldoa negatiiviseksi.
@@ -163,6 +177,13 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up -d db app
 - **Runkoraja:** `express.json()` on oletusrajassa (100 kt) kaikkialla paitsi
   `PUT /api/items/:id/photo`, jolle [index.ts](backend/src/index.ts) antaa 1 Mt. Älä nosta
   globaalia rajaa — se on tarkoituksella tiukka.
+- **Listan tila osoitteessa:** inventaarion välilehti ja haku ovat query-parametreissa
+  (`/inventaario?cat=kaluste&q=mikro`, päivitys `replace: true` ettei historia täyty).
+  Tuotelinkit kantavat parametrit mukanaan ja tuotesivun paluulinkki palauttaa ne. Älä
+  siirrä näitä `useState`iin — silloin tuotteesta palaaminen pudottaa käyttäjän takaisin
+  Ruoka-välilehdelle.
+- **Reittien järjestys:** `GET /api/items/lookup` on rekisteröitävä ennen `GET /:id`:tä,
+  muuten Express tulkitsee "lookup"in id:ksi. Sama pätee kaikkiin uusiin sanareitteihin.
 - **Oikeudet:** flat — kaikki kirjautuneet voivat kirjata ja perua (void). Vain admin:
   käyttäjähallinta (`/api/users`). Audit-loki (`user_id` joka rivillä) antaa jäljitettävyyden.
 - **Raporttien aikavyöhyke:** päiväryhmittely `Europe/Helsinki`
@@ -176,7 +197,8 @@ docker compose -f docker-compose.yml -f docker-compose.local.yml up -d db app
 
 ## Ei kuulu tähän versioon
 
-Offline-tila, viivakoodit, useampi varasto, toimittaja-/hinta-/kustannushallinta.
+Offline-tila, useampi varasto, toimittaja-/hinta-/kustannushallinta.
 Kulutusennuste on toteutettu, mutta pidetään yksinkertaisena: painotettu keskiarvo
 valituista tapahtumista — ei tuoreuspainotusta eikä kausimallinnusta.
-`items`-tauluun on jätetty kommentti mahdollisesta `barcode`-sarakkeesta — ei toteuteta.
+Viivakoodi on toteutettu vain hakutapana: ei ulkoisia tuotetietokantoja, ei omien
+koodien generointia, ei skannauksesta suoraan syntyvää kirjausta.

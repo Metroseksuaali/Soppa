@@ -147,6 +147,88 @@ itemsRouter.post(
   })
 );
 
+// --- Viivakoodit ---------------------------------------------------------------
+//
+// Koodi → tuote on yksiselitteinen haku (item_barcodes.code on pääavain), joten
+// skannaus vie suoraan oikeaan tuotteeseen. Koodi ei vaikuta saldoon eikä raportteihin.
+// HUOM: /lookup on rekisteröitävä ennen GET /:id -reittiä, muuten se osuisi siihen.
+
+// Skannerit ja näppäimistösyöttö tuottavat välilyöntejä ja pieniä kirjaimia — tallennetaan
+// ja haetaan aina samassa muodossa, jotta sama koodi löytyy riippumatta lukutavasta.
+function normalizeBarcode(raw: string): string {
+  const code = raw.trim().replace(/\s+/g, '').toUpperCase();
+  if (!/^[0-9A-Z\-._]{4,64}$/.test(code)) throw new HttpError(400, 'Virheellinen viivakoodi');
+  return code;
+}
+
+// GET /api/items/lookup?code=6408430000012 → tuote jolle koodi kuuluu (404 jos tuntematon)
+itemsRouter.get(
+  '/lookup',
+  asyncHandler(async (req, res) => {
+    const raw = req.query.code as string | undefined;
+    if (!raw) throw new HttpError(400, 'Viivakoodi puuttuu');
+    const code = normalizeBarcode(raw);
+    const { rows } = await query(
+      `SELECT i.id, i.name, i.category, i.unit, i.pack_size, i.pack_unit,
+              i.returnable, i.archived, i.note, i.created_at,
+              i.group_id, f.group_name, f.base_unit AS group_base_unit, f.factor AS group_factor,
+              COALESCE(vs.qty, 0) AS stock,
+              (p.item_id IS NOT NULL) AS has_photo, p.updated_at AS photo_updated_at
+       FROM item_barcodes b
+       JOIN items i ON i.id = b.item_id
+       LEFT JOIN varasto_stock vs ON vs.item_id = i.id
+       LEFT JOIN item_photos p ON p.item_id = i.id
+       LEFT JOIN item_group_factor f ON f.item_id = i.id
+       WHERE b.code = $1`,
+      [code]
+    );
+    if (rows.length === 0) throw new HttpError(404, `Viivakoodia ${code} ei ole liitetty mihinkään tuotteeseen`);
+    res.json(rows[0]);
+  })
+);
+
+const barcodeSchema = z.object({ code: z.string().min(1) });
+
+// POST /api/items/:id/barcodes — liitä koodi tuotteeseen.
+itemsRouter.post(
+  '/:id/barcodes',
+  asyncHandler(async (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    const code = normalizeBarcode(barcodeSchema.parse(req.body).code);
+
+    const item = await query('SELECT 1 FROM items WHERE id = $1', [id]);
+    if (item.rows.length === 0) throw new HttpError(404, 'Tuotetta ei löydy');
+
+    // Sama koodi kahdella tuotteella tekisi skannauksesta arvausta — kerrotaan kummalla se on.
+    const owner = await query(
+      `SELECT b.item_id, i.name FROM item_barcodes b JOIN items i ON i.id = b.item_id WHERE b.code = $1`,
+      [code]
+    );
+    if (owner.rows.length > 0) {
+      if (owner.rows[0].item_id === id) return res.status(200).json({ code, item_id: id });
+      throw new HttpError(409, `Viivakoodi ${code} on jo tuotteella ${owner.rows[0].name}`);
+    }
+
+    const { rows } = await query(
+      `INSERT INTO item_barcodes (code, item_id, created_by) VALUES ($1, $2, $3)
+       RETURNING code, item_id, created_at`,
+      [code, id, req.user!.id]
+    );
+    res.status(201).json(rows[0]);
+  })
+);
+
+itemsRouter.delete(
+  '/:id/barcodes/:code',
+  asyncHandler(async (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    const code = normalizeBarcode(req.params.code);
+    const { rowCount } = await query('DELETE FROM item_barcodes WHERE code = $1 AND item_id = $2', [code, id]);
+    if (rowCount === 0) throw new HttpError(404, 'Viivakoodia ei löydy tältä tuotteelta');
+    res.json({ ok: true });
+  })
+);
+
 // GET /api/items/:id → tiedot + varastosaldo + sijaintijakauma + historia
 itemsRouter.get(
   '/:id',
@@ -193,7 +275,12 @@ itemsRouter.get(
       [id]
     );
 
-    res.json({ ...item, locations: locRes.rows, history: histRes.rows });
+    const barcodeRes = await query(
+      'SELECT code, created_at FROM item_barcodes WHERE item_id = $1 ORDER BY created_at',
+      [id]
+    );
+
+    res.json({ ...item, locations: locRes.rows, history: histRes.rows, barcodes: barcodeRes.rows });
   })
 );
 
