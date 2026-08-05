@@ -202,6 +202,26 @@ export const t = {
     hiddenTag: 'Piilotettu',
     hide: 'Piilota',
     show: 'Näytä',
+    itemsOut: (n: number) => (n === 1 ? '1 tuote ulkona' : `${n} tuotetta ulkona`),
+    nothingOut: 'Ei mitään ulkona',
+    listHint: 'Avaa sijainti nähdäksesi mitä siellä on ja palauttaaksesi tavarat.',
+  },
+
+  // Sijaintinäkymä (mitä täällä on + palautus)
+  locationDetail: {
+    outNow: 'Ulkona nyt',
+    outEmpty: 'Täällä ei ole mitään ulkona.',
+    returnHint: 'Rastita mitä sait haettua. Määrää voi muuttaa, jos osa jää.',
+    selectAll: 'Valitse kaikki',
+    clearSelection: 'Tyhjennä',
+    returnSelected: (n: number) => `Palauta varastoon (${n})`,
+    returning: 'Palautetaan…',
+    returned: (n: number) => (n === 1 ? '1 tuote palautettu varastoon' : `${n} tuotetta palautettu varastoon`),
+    partialFailed: (n: number, reason: string) => `${n} epäonnistui: ${reason}`,
+    consumedHere: 'Kulutettu täällä',
+    consumedInEvent: (name: string) => `Tapahtumassa ${name}`,
+    consumedAllTime: 'Kaikki kirjaukset (ei aktiivista tapahtumaa)',
+    consumedEmpty: 'Ei kulutuskirjauksia tähän sijaintiin.',
   },
 
   // Tapahtumat

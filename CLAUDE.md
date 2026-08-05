@@ -59,9 +59,9 @@ frontend/
                            ItemPhoto (tuotekuvan otto/näyttö + ItemThumb)
     lib/format.ts          Numeroiden, päivämäärien ja kaksoisyksikön muotoilu
     lib/image.ts           Kuvan pienennys ja pakkaus selaimessa ennen lähetystä
-    pages/                 Login, Home, Inventory, ItemDetail, Log, Locations, Events,
-                           Reports, Forecast (kulutusennuste), Import (historiatuonti),
-                           Groups (tuoteryhmät), Users
+    pages/                 Login, Home, Inventory, ItemDetail, Log, Locations, LocationDetail,
+                           Events, Reports, Forecast (kulutusennuste),
+                           Import (historiatuonti), Groups (tuoteryhmät), Users
     lib/importParse.ts     Liitetyn taulukon jäsennys tuontiriveiksi (päivä, määrä, tuotenimi)
 scripts/                   backup.sh (pg_dump -> .sql.gz), restore.sh
 ```
@@ -94,6 +94,11 @@ scripts/                   backup.sh (pg_dump -> .sql.gz), restore.sh
   ~150 kt näyttökuvaksi + 256 px pikkukuvaksi, ja backend vain torjuu ylisuuret
   (400 kt / 60 kt) sekä tarkistaa tyypin taikatavuista. Näin ei tarvita `sharp`-tyyppistä
   natiivikirjastoa. Kuvat ovat tietokannassa → `scripts/backup.sh` kattaa ne.
+- **Sijaintinäkymä:** `GET /api/locations/:id` kertoo mitä sijainnissa on **juuri nyt ulkona**
+  (`location_stock`, qty > 0) ja mitä siellä on **kulutettu** (rajattuna aktiiviseen tapahtumaan
+  jos sellainen on, muuten koko historia). Näkymä ei tuo uutta dataa — se on olemassa olevan
+  lokin suodatus. Palautus tehdään siitä samasta listasta rasti ruutuun, ja jokainen rastittu
+  tuote kirjataan omana `POST /movements/return` -kutsunaan (normaalit rajoitteet pätevät).
 - **Kulutusennuste:** tapahtumaan kirjataan `org_count` (orgien määrä) ja valinnainen
   `days`; `event_metrics`-näkymä päättelee puuttuvan keston (päivämääräväli → kulutus-
   kirjausten päivät → 1). Ennuste = Σ kulutus / Σ orgit (tai Σ orgi-päivät) × suunniteltu
