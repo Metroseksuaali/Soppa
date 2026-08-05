@@ -53,6 +53,7 @@ export function ImportPage() {
           date: r.date!,
           quantity: r.quantity!,
           type: r.type,
+          sponsored: r.sponsored,
         })),
       }),
     onSuccess: (res) => {
@@ -265,6 +266,11 @@ function PreviewTable({ rows }: { rows: ParsedRow[] }) {
                   {r.type === 'lisays' && (
                     <span className="chip bg-emerald-100 text-emerald-800 ml-2">
                       {t.movementTypes.lisays}
+                    </span>
+                  )}
+                  {r.sponsored && (
+                    <span className="chip bg-violet-100 text-violet-800 ml-2">
+                      {t.forecast.sponsoredTag}
                     </span>
                   )}
                 </span>

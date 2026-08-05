@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, Item, Category } from '../api';
+import { api, Item, Category, ItemGroup } from '../api';
 import { Spinner, ErrorMsg, Modal, CategoryChip } from '../components/ui';
 import { ItemThumb } from '../components/ItemPhoto';
 import { fmtQty, parseNum } from '../lib/format';
@@ -103,6 +103,20 @@ function CreateItemModal({
   const [packUnit, setPackUnit] = useState('');
   const [returnable, setReturnable] = useState(false);
   const [note, setNote] = useState('');
+  const [groupId, setGroupId] = useState<number | ''>('');
+
+  const { data: groups } = useQuery({
+    queryKey: ['groups', 'active'],
+    queryFn: () => api.get<ItemGroup[]>('/groups'),
+  });
+  const chosenGroup = groups?.find((g) => g.id === groupId) ?? null;
+
+  // Varoita jos tuotteen määrää ei voi muuntaa ryhmän perusyksikköön.
+  const packNum = packSize ? parseNum(packSize) : null;
+  const groupMismatch =
+    chosenGroup !== null &&
+    unit.trim() !== chosenGroup.base_unit &&
+    !(packUnit.trim() === chosenGroup.base_unit && packNum && packNum > 0);
 
   const mutation = useMutation({
     mutationFn: () =>
@@ -114,6 +128,7 @@ function CreateItemModal({
         pack_unit: packUnit.trim() || null,
         returnable,
         note: note.trim() || null,
+        group_id: groupId === '' ? null : groupId,
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['items'] });
@@ -130,6 +145,7 @@ function CreateItemModal({
     setPackUnit('');
     setReturnable(false);
     setNote('');
+    setGroupId('');
   }
 
   return (
@@ -181,6 +197,27 @@ function CreateItemModal({
             <label className="label">{t.common.packUnit}</label>
             <input className="input" placeholder={t.itemForm.packUnitPlaceholder} value={packUnit} onChange={(e) => setPackUnit(e.target.value)} />
           </div>
+        </div>
+        <div>
+          <label className="label">{t.itemForm.group}</label>
+          <select
+            className="input"
+            value={groupId}
+            onChange={(e) => setGroupId(e.target.value ? parseInt(e.target.value, 10) : '')}
+          >
+            <option value="">{t.itemForm.noGroup}</option>
+            {groups?.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name} ({g.base_unit})
+              </option>
+            ))}
+          </select>
+          <p className="text-xs text-slate-400 mt-1">{t.itemForm.groupHint}</p>
+          {groupMismatch && (
+            <p className="text-xs text-amber-700 mt-1">
+              {t.itemForm.groupIncompatible(chosenGroup!.base_unit)}
+            </p>
+          )}
         </div>
         <div>
           <label className="label">{t.itemForm.noteLabel}</label>

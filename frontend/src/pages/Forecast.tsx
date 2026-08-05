@@ -7,6 +7,7 @@ import {
   Category,
   EventRow,
   ForecastBasis,
+  ForecastGroup,
   ForecastItem,
   ForecastReport,
   TotalsReport,
@@ -26,6 +27,7 @@ export function ForecastPage() {
   const [orgCount, setOrgCount] = useState('');
   const [days, setDays] = useState('1');
   const [basis, setBasis] = useState<ForecastBasis>('per_org');
+  const [level, setLevel] = useState<'group' | 'item'>('group');
   const [category, setCategory] = useState<Category | ''>('');
   const [selected, setSelected] = useState<Set<number>>(new Set());
   const [initialized, setInitialized] = useState(false);
@@ -197,7 +199,9 @@ export function ForecastPage() {
       {error && <ErrorMsg error={error} />}
       {isFetching && <Spinner />}
 
-      {report && !isFetching && <ForecastResult report={report} basis={basis} />}
+      {report && !isFetching && (
+        <ForecastResult report={report} basis={basis} level={level} onLevel={setLevel} />
+      )}
 
       <StatsCard eventIds={Array.from(selected)} category={category || undefined} />
     </div>
@@ -227,8 +231,20 @@ function BasisButton({
   );
 }
 
-function ForecastResult({ report, basis }: { report: ForecastReport; basis: ForecastBasis }) {
+function ForecastResult({
+  report,
+  basis,
+  level,
+  onLevel,
+}: {
+  report: ForecastReport;
+  basis: ForecastBasis;
+  level: 'group' | 'item';
+  onLevel: (l: 'group' | 'item') => void;
+}) {
   const skipped = report.basis.events_skipped;
+  const ungrouped = report.items.filter((i) => i.group_id === null);
+
   return (
     <div className="space-y-3">
       {skipped.length > 0 && (
@@ -238,17 +254,132 @@ function ForecastResult({ report, basis }: { report: ForecastReport; basis: Fore
       )}
 
       <div className="card p-4">
-        <h2 className="font-semibold text-sm text-slate-500 mb-3">{t.forecast.resultTitle}</h2>
+        <div className="flex items-center justify-between gap-2 mb-1">
+          <h2 className="font-semibold text-sm text-slate-500">{t.forecast.resultTitle}</h2>
+          <div className="flex gap-2 text-xs">
+            <ScopeButton active={level === 'group'} label={t.forecast.levelGroup} onClick={() => onLevel('group')} />
+            <ScopeButton active={level === 'item'} label={t.forecast.levelItem} onClick={() => onLevel('item')} />
+          </div>
+        </div>
+        <p className="text-xs text-slate-400 mb-3">{t.forecast.levelHint}</p>
+
         {report.items.length === 0 ? (
           <div className="text-slate-400 text-sm">{t.forecast.noData}</div>
-        ) : (
+        ) : level === 'item' ? (
           <div className="space-y-4">
             {report.items.map((it) => (
               <ForecastRow key={it.item_id} item={it} basis={basis} />
             ))}
           </div>
+        ) : (
+          <div className="space-y-4">
+            {report.groups.length === 0 && (
+              <div className="text-sm text-amber-700">
+                {t.forecast.noGroups}{' '}
+                <Link to="/tuoteryhmat" className="underline font-medium">
+                  {t.forecast.manageGroups}
+                </Link>
+              </div>
+            )}
+            {report.groups.map((g) => (
+              <GroupRow
+                key={g.group_id}
+                group={g}
+                basis={basis}
+                members={report.items.filter((i) => i.group_id === g.group_id)}
+              />
+            ))}
+            {ungrouped.length > 0 && (
+              <div className="pt-2 border-t border-slate-100">
+                <div className="text-sm font-semibold text-slate-500">{t.forecast.ungrouped}</div>
+                <p className="text-xs text-slate-400 mb-3">{t.forecast.ungroupedHint}</p>
+                <div className="space-y-4">
+                  {ungrouped.map((it) => (
+                    <ForecastRow key={it.item_id} item={it} basis={basis} />
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
+    </div>
+  );
+}
+
+// Ryhmärivi: sama rakenne kuin tuoterivillä, mutta määrät ryhmän perusyksikössä
+// ja jäsentuotteet avattavissa alle.
+function GroupRow({
+  group,
+  basis,
+  members,
+}: {
+  group: ForecastGroup;
+  basis: ForecastBasis;
+  members: ForecastItem[];
+}) {
+  const [open, setOpen] = useState(false);
+  const estimate = basis === 'per_org' ? group.estimate_per_org : group.estimate_per_org_day;
+  const toBuy = basis === 'per_org' ? group.to_buy_per_org : group.to_buy_per_org_day;
+  const rate = basis === 'per_org' ? group.per_org : group.per_org_day;
+  const per = basis === 'per_org' ? t.forecast.perOrgLabel : t.forecast.perOrgDayLabel;
+  const u = group.base_unit;
+
+  return (
+    <div className="border-b border-slate-100 pb-3 last:border-0 last:pb-0">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="font-medium truncate">{group.name}</div>
+          <div className="text-xs text-slate-400">
+            {t.forecast.groupMembers(members.length)} · {fmtNum(rate)} {u} {per}
+          </div>
+        </div>
+        <div className="text-right shrink-0">
+          {toBuy > 0 ? (
+            <>
+              <div className="text-[11px] uppercase tracking-wide text-slate-400">{t.forecast.toBuy}</div>
+              <div className="font-bold text-brand">
+                {fmtNum(toBuy)} {u}
+              </div>
+            </>
+          ) : (
+            <div className="chip bg-emerald-100 text-emerald-800">{t.forecast.enough}</div>
+          )}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-sm">
+        <Stat label={t.forecast.estimate} value={`${fmtNum(estimate)} ${u}`} />
+        <Stat label={t.forecast.stockNow} value={`${fmtNum(group.stock_now)} ${u}`} />
+      </div>
+
+      <div className="mt-1.5 text-xs text-slate-400">
+        {t.forecast.confidence(group.events_used, group.events_total)}
+        {group.sponsored_events > 0 &&
+          ` · ${t.forecast.sponsoredLine(`${fmtNum(group.sponsored_estimate)} ${u}`, group.sponsored_events)}`}
+      </div>
+
+      {group.incompatible_items.length > 0 && (
+        <div className="mt-1 text-xs text-amber-700 flex items-start gap-1">
+          <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+          {t.forecast.incompatible(group.incompatible_items.map((i) => i.name).join(', '))}
+        </div>
+      )}
+
+      <button
+        className="mt-1.5 text-xs text-brand font-medium inline-flex items-center gap-1"
+        onClick={() => setOpen(!open)}
+      >
+        {open ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+        {open ? t.forecast.hideHistory : t.forecast.showHistory}
+      </button>
+      {open && (
+        <div className="mt-2 space-y-4 pl-3 border-l-2 border-slate-100">
+          {members.map((m) => (
+            <ForecastRow key={m.item_id} item={m} basis={basis} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -307,6 +438,11 @@ function ForecastRow({ item, basis }: { item: ForecastItem; basis: ForecastBasis
         {t.forecast.confidence(item.events_used, item.events_total)}
         {item.events_used > 1 &&
           ` · ${t.forecast.spread(fmtNum(rateMin), fmtNum(rateMax), item.unit, per)}`}
+        {item.sponsored_events > 0 &&
+          ` · ${t.forecast.sponsoredLine(
+            fmtQty(item.sponsored_estimate, item.unit, item.pack_size, item.pack_unit),
+            item.sponsored_events
+          )}`}
       </div>
       {(single || wideSpread) && (
         <div className="mt-1 text-xs text-amber-700 flex items-center gap-1">

@@ -63,7 +63,7 @@ async function fetchMovement(client: PoolClient, id: number) {
     `SELECT m.id, m.item_id, i.name AS item_name, i.unit, i.pack_size, i.pack_unit,
             m.type, m.quantity, m.counted, m.location_id, l.name AS location_name,
             m.event_id, e.name AS event_name, m.user_id, u.display_name AS user_name,
-            m.note, m.voided, m.voids_id, m.created_at
+            m.note, m.voided, m.voids_id, m.sponsored, m.created_at
      FROM movements m
      JOIN items i ON i.id = m.item_id
      LEFT JOIN locations l ON l.id = m.location_id
@@ -83,6 +83,9 @@ const addSchema = z.object({
   item_id: z.number().int(),
   quantity: qtySchema,
   note: z.string().nullable().optional(),
+  // Sponsorilahjoitus: tavara saatiin maksutta. Vaikuttaa vain siihen mistä tavara
+  // tuli — kulutus ja ennuste lasketaan samoin kuin ostetusta tavarasta.
+  sponsored: z.boolean().optional(),
 });
 const deploySchema = z.object({
   item_id: z.number().int(),
@@ -113,9 +116,9 @@ movementsRouter.post(
       await lockItem(client, b.item_id);
       const eventId = await activeEventId(client);
       const { rows } = await client.query(
-        `INSERT INTO movements (item_id, type, quantity, event_id, user_id, note)
-         VALUES ($1, 'lisays', $2, $3, $4, $5) RETURNING id`,
-        [b.item_id, b.quantity, eventId, req.user!.id, b.note ?? null]
+        `INSERT INTO movements (item_id, type, quantity, event_id, user_id, note, sponsored)
+         VALUES ($1, 'lisays', $2, $3, $4, $5, $6) RETURNING id`,
+        [b.item_id, b.quantity, eventId, req.user!.id, b.note ?? null, b.sponsored ?? false]
       );
       return fetchMovement(client, rows[0].id);
     });
@@ -229,6 +232,7 @@ const importRowSchema = z.object({
   quantity: qtySchema,
   type: z.enum(['kulutus', 'lisays']).default('kulutus'),
   note: z.string().nullable().optional(),
+  sponsored: z.boolean().optional(), // vain lisäysriveillä merkityksellinen
 });
 
 const importSchema = z.object({
@@ -262,9 +266,19 @@ movementsRouter.post(
       let inserted = 0;
       for (const row of b.rows) {
         await client.query(
-          `INSERT INTO movements (item_id, type, quantity, event_id, user_id, note, import_batch, created_at)
-           VALUES ($2, $3, $4, $5, $6, $7, $8, ${IMPORT_TS})`,
-          [row.date, row.item_id, row.type, row.quantity, b.event_id, req.user!.id, row.note ?? null, batch]
+          `INSERT INTO movements (item_id, type, quantity, event_id, user_id, note, import_batch, sponsored, created_at)
+           VALUES ($2, $3, $4, $5, $6, $7, $8, $9, ${IMPORT_TS})`,
+          [
+            row.date,
+            row.item_id,
+            row.type,
+            row.quantity,
+            b.event_id,
+            req.user!.id,
+            row.note ?? null,
+            batch,
+            row.type === 'lisays' ? row.sponsored ?? false : false,
+          ]
         );
         inserted++;
         if (b.balance_with_additions && row.type === 'kulutus') {
@@ -377,7 +391,7 @@ movementsRouter.get(
       `SELECT m.id, m.item_id, i.name AS item_name, i.unit, i.pack_size, i.pack_unit,
               m.type, m.quantity, m.counted, m.location_id, l.name AS location_name,
               m.event_id, e.name AS event_name, m.user_id, u.display_name AS user_name,
-              m.note, m.voided, m.voids_id, m.created_at
+              m.note, m.voided, m.voids_id, m.sponsored, m.created_at
        FROM movements m
        JOIN items i ON i.id = m.item_id
        LEFT JOIN locations l ON l.id = m.location_id

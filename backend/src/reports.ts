@@ -16,6 +16,8 @@ export async function buildEventReport(eventId: number, groupByDay: boolean) {
   const perItem = await query(
     `SELECT i.id AS item_id, i.name, i.category, i.unit, i.pack_size, i.pack_unit,
             COALESCE(SUM(CASE WHEN m.type = 'lisays' THEN m.quantity ELSE 0 END), 0) AS added,
+            COALESCE(SUM(CASE WHEN m.type = 'lisays' AND m.sponsored THEN m.quantity ELSE 0 END), 0)
+              AS added_sponsored,
             COALESCE(SUM(CASE WHEN m.type = 'kulutus' THEN m.quantity ELSE 0 END), 0) AS consumed
      FROM items i
      JOIN movements m ON m.item_id = i.id AND m.voided = FALSE AND m.event_id = $1
@@ -90,6 +92,8 @@ interface ForecastHistoryRow {
   org_count: number;
   days: number;
   consumed: number;
+  /** Sponsoreilta saatu määrä tässä tapahtumassa (lisäyskirjaukset). */
+  sponsored: number;
   per_org: number;
   per_org_day: number;
 }
@@ -141,6 +145,8 @@ export async function forecastReport(input: ForecastInput) {
 
   // Kulutus per tuote per tapahtuma. Vain kulutus-tyyppi: se on ainoa joka kuvaa
   // pysyvää menekkiä (vienti/palautus liikuttavat palautuvia edestakaisin).
+  // Sponsoroitu = paljonko tavarasta saapui varastoon lahjoituksena (lisäysrivit).
+  // Se ei vaikuta kulutukseen eikä ennusteeseen, vaan kertoo mistä tarve katettiin.
   const params: any[] = [usableIds];
   let catCond = '';
   if (category !== undefined) {
@@ -148,12 +154,16 @@ export async function forecastReport(input: ForecastInput) {
     catCond = `AND i.category = $${params.length}`;
   }
   const consRes = await query(
-    `SELECT m.event_id, m.item_id, SUM(m.quantity) AS consumed
+    `SELECT m.event_id, m.item_id,
+            SUM(m.quantity) FILTER (WHERE m.type = 'kulutus') AS consumed,
+            COALESCE(SUM(m.quantity) FILTER (WHERE m.type = 'lisays' AND m.sponsored), 0) AS sponsored
      FROM movements m
      JOIN items i ON i.id = m.item_id
-     WHERE m.type = 'kulutus' AND m.voided = FALSE AND m.event_id = ANY($1) ${catCond}
+     WHERE m.voided = FALSE AND m.event_id = ANY($1)
+       AND (m.type = 'kulutus' OR (m.type = 'lisays' AND m.sponsored)) ${catCond}
      GROUP BY m.event_id, m.item_id
-     HAVING SUM(m.quantity) > 0`,
+     HAVING COALESCE(SUM(m.quantity) FILTER (WHERE m.type = 'kulutus'), 0) > 0
+         OR COALESCE(SUM(m.quantity) FILTER (WHERE m.type = 'lisays' AND m.sponsored), 0) > 0`,
     params
   );
 
@@ -162,9 +172,11 @@ export async function forecastReport(input: ForecastInput) {
 
   const itemRes = await query(
     `SELECT i.id, i.name, i.category, i.unit, i.pack_size, i.pack_unit, i.archived,
+            i.group_id, f.group_name, f.base_unit AS group_base_unit, f.factor AS group_factor,
             COALESCE(vs.qty, 0) AS stock_now
      FROM items i
      LEFT JOIN varasto_stock vs ON vs.item_id = i.id
+     LEFT JOIN item_group_factor f ON f.item_id = i.id
      WHERE i.id = ANY($1)
      ORDER BY i.category, i.name`,
     [itemIds]
@@ -175,7 +187,7 @@ export async function forecastReport(input: ForecastInput) {
     const itemId = Number(r.item_id);
     const ev = meta.get(Number(r.event_id));
     if (!ev) continue;
-    const consumed = Number(r.consumed);
+    const consumed = Number(r.consumed ?? 0);
     if (!history.has(itemId)) history.set(itemId, []);
     history.get(itemId)!.push({
       event_id: Number(r.event_id),
@@ -184,6 +196,7 @@ export async function forecastReport(input: ForecastInput) {
       org_count: ev.org_count,
       days: ev.days,
       consumed,
+      sponsored: Number(r.sponsored ?? 0),
       per_org: consumed / ev.org_count,
       per_org_day: consumed / (ev.org_count * ev.days),
     });
@@ -203,6 +216,12 @@ export async function forecastReport(input: ForecastInput) {
     const estPerOrgDay = perOrgDay * orgCount * days;
     const stockNow = Number(it.stock_now);
 
+    // Sponsoriosuus skaalataan orgeihin samoin kuin tarve, jotta luvut ovat
+    // samalla rivillä vertailukelpoisia myös eri kokoisen tapahtuman kanssa.
+    const sponsoredRows = rows.filter((r) => r.sponsored > 0);
+    const totalSponsored = sum(rows.map((r) => r.sponsored));
+    const sponsoredPerOrg = totalOrgs > 0 ? totalSponsored / totalOrgs : 0;
+
     return {
       item_id: Number(it.id),
       name: it.name,
@@ -211,6 +230,15 @@ export async function forecastReport(input: ForecastInput) {
       pack_size: it.pack_size,
       pack_unit: it.pack_unit,
       archived: it.archived,
+      group_id: it.group_id === null ? null : Number(it.group_id),
+      group_name: it.group_name ?? null,
+      group_base_unit: it.group_base_unit ?? null,
+      group_factor: it.group_factor === null || it.group_factor === undefined ? null : Number(it.group_factor),
+      // Sponsorit: montako tapahtumaa sisälsi lahjoituksia ja paljonko niitä oli.
+      sponsored_events: sponsoredRows.length,
+      total_sponsored: totalSponsored,
+      sponsored_per_org: sponsoredPerOrg,
+      sponsored_estimate: sponsoredPerOrg * orgCount,
       // Luottamus: montako tapahtumaa arvion takana ja kuinka paljon hajontaa.
       events_used: rows.length,
       events_total: usable.length,
@@ -230,7 +258,120 @@ export async function forecastReport(input: ForecastInput) {
     };
   });
 
-  return { basis, items };
+  const groups = await buildGroupForecast(items, meta, usable.length, orgCount, days);
+
+  return { basis, items, groups };
+}
+
+// Ryhmätason kooste: brändi vaihtuu tapahtumien välissä, tarve ei. Tuotteiden määrät
+// muunnetaan ryhmän perusyksikköön (item_group_factor) ja summataan tapahtumittain.
+// Tuote jonka määrää ei voi muuntaa jätetään summasta pois ja raportoidaan erikseen.
+async function buildGroupForecast(
+  items: any[],
+  meta: Map<number, { name: string; starts_at: string | null; org_count: number; days: number }>,
+  eventsTotal: number,
+  orgCount: number,
+  days: number
+) {
+  const groupIds = Array.from(
+    new Set(items.map((i) => i.group_id).filter((g: number | null): g is number => g !== null))
+  );
+  if (groupIds.length === 0) return [];
+
+  // Ryhmän varastosaldo lasketaan kaikista jäsentuotteista, myös niistä joita ei ole
+  // kulutettu valituissa tapahtumissa (esim. juuri ostettu uusi merkki).
+  const memberRes = await query(
+    `SELECT i.id, i.name, i.unit, i.archived, f.group_id, f.group_name, f.base_unit, f.factor,
+            COALESCE(vs.qty, 0) AS stock_now
+     FROM items i
+     JOIN item_group_factor f ON f.item_id = i.id
+     LEFT JOIN varasto_stock vs ON vs.item_id = i.id
+     WHERE f.group_id = ANY($1)
+     ORDER BY i.name`,
+    [groupIds]
+  );
+
+  const perGroupEvent = new Map<number, Map<number, { consumed: number; sponsored: number }>>();
+  for (const it of items) {
+    if (it.group_id === null || it.group_factor === null) continue;
+    if (!perGroupEvent.has(it.group_id)) perGroupEvent.set(it.group_id, new Map());
+    const byEvent = perGroupEvent.get(it.group_id)!;
+    for (const h of it.history as ForecastHistoryRow[]) {
+      const cur = byEvent.get(h.event_id) ?? { consumed: 0, sponsored: 0 };
+      cur.consumed += h.consumed * it.group_factor;
+      cur.sponsored += h.sponsored * it.group_factor;
+      byEvent.set(h.event_id, cur);
+    }
+  }
+
+  return groupIds
+    .map((gid) => {
+      const members = memberRes.rows.filter((m: any) => Number(m.group_id) === gid);
+      const first = members[0];
+      const baseUnit = first?.base_unit ?? items.find((i) => i.group_id === gid)?.group_base_unit ?? '';
+      const groupName = first?.group_name ?? items.find((i) => i.group_id === gid)?.group_name ?? '';
+
+      const rows = Array.from(perGroupEvent.get(gid)?.entries() ?? [])
+        .map(([eventId, v]) => {
+          const ev = meta.get(eventId)!;
+          return {
+            event_id: eventId,
+            event_name: ev.name,
+            starts_at: ev.starts_at,
+            org_count: ev.org_count,
+            days: ev.days,
+            consumed: v.consumed,
+            sponsored: v.sponsored,
+            per_org: v.consumed / ev.org_count,
+            per_org_day: v.consumed / (ev.org_count * ev.days),
+          };
+        })
+        .sort((a, b) => ts(a.starts_at) - ts(b.starts_at));
+
+      const totalConsumed = sum(rows.map((r) => r.consumed));
+      const totalOrgs = sum(rows.map((r) => r.org_count));
+      const totalOrgDays = sum(rows.map((r) => r.org_count * r.days));
+      const perOrg = totalOrgs > 0 ? totalConsumed / totalOrgs : 0;
+      const perOrgDay = totalOrgDays > 0 ? totalConsumed / totalOrgDays : 0;
+      const estPerOrg = perOrg * orgCount;
+      const estPerOrgDay = perOrgDay * orgCount * days;
+
+      const stockNow = sum(
+        members.filter((m: any) => m.factor !== null).map((m: any) => Number(m.stock_now) * Number(m.factor))
+      );
+      const totalSponsored = sum(rows.map((r) => r.sponsored));
+      const sponsoredPerOrg = totalOrgs > 0 ? totalSponsored / totalOrgs : 0;
+
+      return {
+        group_id: gid,
+        name: groupName,
+        base_unit: baseUnit,
+        events_used: rows.length,
+        events_total: eventsTotal,
+        per_org_min: rows.length ? Math.min(...rows.map((r) => r.per_org)) : 0,
+        per_org_max: rows.length ? Math.max(...rows.map((r) => r.per_org)) : 0,
+        per_org_day_min: rows.length ? Math.min(...rows.map((r) => r.per_org_day)) : 0,
+        per_org_day_max: rows.length ? Math.max(...rows.map((r) => r.per_org_day)) : 0,
+        total_consumed: totalConsumed,
+        per_org: perOrg,
+        per_org_day: perOrgDay,
+        estimate_per_org: estPerOrg,
+        estimate_per_org_day: estPerOrgDay,
+        stock_now: stockNow,
+        to_buy_per_org: Math.max(0, estPerOrg - stockNow),
+        to_buy_per_org_day: Math.max(0, estPerOrgDay - stockNow),
+        sponsored_events: rows.filter((r) => r.sponsored > 0).length,
+        total_sponsored: totalSponsored,
+        sponsored_per_org: sponsoredPerOrg,
+        sponsored_estimate: sponsoredPerOrg * orgCount,
+        // Yhteismitattomat jäsenet: puuttuva tai eri pakkausyksikkö kuin ryhmän perusyksikkö.
+        incompatible_items: members
+          .filter((m: any) => m.factor === null && !m.archived)
+          .map((m: any) => ({ item_id: Number(m.id), name: m.name, unit: m.unit })),
+        history: rows,
+      };
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, 'fi'));
 }
 
 function sum(ns: number[]): number {

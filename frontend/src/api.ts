@@ -67,6 +67,34 @@ export interface Item {
   stock: number;
   has_photo: boolean;
   photo_updated_at: string | null;
+  group_id: number | null;
+  group_name: string | null;
+  group_base_unit: GroupUnit | null;
+  /** Kerroin tuotteen yksiköstä ryhmän perusyksikköön; null = ei yhteismitallinen. */
+  group_factor: number | null;
+}
+
+/** Ryhmän perusyksikkö — vapaa teksti kuten tuotteen yksikkö ('kg', 'l', 'pkt'…). */
+export type GroupUnit = string;
+
+export interface ItemGroup {
+  id: number;
+  name: string;
+  base_unit: GroupUnit;
+  active: boolean;
+  created_at: string;
+  item_count: number;
+  incompatible_count: number;
+}
+
+export interface GroupMember {
+  id: number;
+  name: string;
+  unit: string;
+  pack_size: number | null;
+  pack_unit: string | null;
+  archived: boolean;
+  factor: number | null;
 }
 
 export interface LocationDist {
@@ -94,6 +122,8 @@ export interface Movement {
   note: string | null;
   voided: boolean;
   voids_id: number | null;
+  /** Lisäys saatiin sponsorilta (maksuton). Muissa tyypeissä aina false. */
+  sponsored: boolean;
   created_at: string;
 }
 
@@ -192,11 +222,42 @@ export interface ForecastHistoryRow {
   org_count: number;
   days: number;
   consumed: number;
+  sponsored: number;
   per_org: number;
   per_org_day: number;
 }
 
-export interface ForecastItem {
+/** Sponsoriosuus: skaalattu orgeihin kuten tarvekin. */
+export interface SponsorFields {
+  sponsored_events: number;
+  total_sponsored: number;
+  sponsored_per_org: number;
+  sponsored_estimate: number;
+}
+
+export interface ForecastGroup extends SponsorFields {
+  group_id: number;
+  name: string;
+  base_unit: GroupUnit;
+  events_used: number;
+  events_total: number;
+  per_org_min: number;
+  per_org_max: number;
+  per_org_day_min: number;
+  per_org_day_max: number;
+  total_consumed: number;
+  per_org: number;
+  per_org_day: number;
+  estimate_per_org: number;
+  estimate_per_org_day: number;
+  stock_now: number;
+  to_buy_per_org: number;
+  to_buy_per_org_day: number;
+  incompatible_items: { item_id: number; name: string; unit: string }[];
+  history: ForecastHistoryRow[];
+}
+
+export interface ForecastItem extends SponsorFields {
   item_id: number;
   name: string;
   category: Category;
@@ -204,6 +265,10 @@ export interface ForecastItem {
   pack_size: number | null;
   pack_unit: string | null;
   archived: boolean;
+  group_id: number | null;
+  group_name: string | null;
+  group_base_unit: GroupUnit | null;
+  group_factor: number | null;
   events_used: number;
   events_total: number;
   per_org_min: number;
@@ -229,6 +294,7 @@ export interface ForecastReport {
     events_skipped: { event_id: number; name: string }[];
   };
   items: ForecastItem[];
+  groups: ForecastGroup[];
 }
 
 // --- Vapaa kulutustilasto ---
@@ -269,6 +335,7 @@ export interface EventReport {
     pack_size: number | null;
     pack_unit: string | null;
     added: number;
+    added_sponsored: number;
     consumed: number;
     out_now: number;
     stock_now: number;

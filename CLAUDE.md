@@ -41,12 +41,13 @@ backend/
     util.ts                asyncHandler, HttpError, errorHandler ({ error }-muoto)
     reports.ts             buildEventReport(), consumptionReport(), forecastReport(),
                            totalsReport() — SQL-summauksia
-    routes/                auth, users, items, locations, events, movements, reports(+stock)
+    routes/                auth, users, items, groups, locations, events, movements, reports(+stock)
   db/
     migrations/001_init.sql  Skeema + varasto_stock / location_stock -näkymät
     migrations/002_item_photos.sql  Tuotekuvat (item_photos)
     migrations/003_event_metrics.sql Tapahtuman mitat (org_count, days) + event_metrics-näkymä
     migrations/004_movement_import.sql Historiatuonnin erätunniste (movements.import_batch)
+    migrations/005_item_groups.sql  Tuoteryhmät + sponsorimerkintä + item_group_factor
     seed.ts                  Idempotentti: admin-käyttäjä + Varasto-sijainti
 frontend/
   src/
@@ -59,7 +60,8 @@ frontend/
     lib/format.ts          Numeroiden, päivämäärien ja kaksoisyksikön muotoilu
     lib/image.ts           Kuvan pienennys ja pakkaus selaimessa ennen lähetystä
     pages/                 Login, Home, Inventory, ItemDetail, Log, Locations, Events,
-                           Reports, Forecast (kulutusennuste), Import (historiatuonti), Users
+                           Reports, Forecast (kulutusennuste), Import (historiatuonti),
+                           Groups (tuoteryhmät), Users
     lib/importParse.ts     Liitetyn taulukon jäsennys tuontiriveiksi (päivä, määrä, tuotenimi)
 scripts/                   backup.sh (pg_dump -> .sql.gz), restore.sh
 ```
@@ -103,7 +105,13 @@ scripts/                   backup.sh (pg_dump -> .sql.gz), restore.sh
   Oletuksena jokaista tuotua kulutusta vastaa samanpäiväinen lisäys → nykysaldo ei muutu.
   Erä merkitään `movements.import_batch`iin, jolloin sen voi perua kerralla. Älä lisää
   päivämäärä-/tapahtumaparametreja tavallisiin kirjausreitteihin — invariantti "kirjaus
-  menee aktiiviseen tapahtumaan nyt" pidetään voimassa. [SPEC.md](SPEC.md) §3.8.
+  menee aktiiviseen tapahtumaan nyt" pidetään voimassa. [SPEC.md](SPEC.md) §3.9.
+- **Tuoteryhmä & sponsorius:** ryhmä (`items.group_id` → `item_groups`) yhdistää saman
+  tarpeen eri brändit; ryhmän perusyksikköön muunnetaan `item_group_factor`-näkymällä
+  (kerroin NULL = ei yhteismitallinen, jätetään summasta pois). Sponsorius on
+  **kirjauksen** ominaisuus (`movements.sponsored`, vain `lisays`), ei tuotteen — sama
+  tuote voi olla kerran lahjoitus ja kerran ostettu. Sponsoroitu tavara lasketaan
+  ennusteeseen normaalisti; se näkyy erillisenä lukuna. [SPEC.md](SPEC.md) §3.8.
 - **Saldon lasku:** näkymät `varasto_stock` ja `location_stock` [001_init.sql](backend/db/migrations/001_init.sql).
   Movements-reitit laskevat saldon transaktion sisällä uudelleen (rivilukitus `FOR UPDATE`),
   jotta rinnakkaiset kirjaukset eivät vie saldoa negatiiviseksi.

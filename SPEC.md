@@ -120,7 +120,36 @@ tapahtuman varaan rakentuva tai voimakkaasti hajoava arvio erottuu.
 Sama pohjadata palvelee vapaata tilastointia (§11): kokonaiskulutus valituista tapahtumista
 ja kertymä tapahtuma kerrallaan (esim. juuston kulutus kiloina jatkuvana lukuna).
 
-### 3.8 Historiatuonti
+### 3.8 Tuoteryhmä ja sponsorius
+
+**Tuoteryhmä** kokoaa saman tarpeen eri brändit ja pakkauskoot yhteen: "Juusto" voi
+sisältää Arki juustoviipaleen ja Oltermannin, "Levite" Aimo Margariinin ja talon
+oman levitteen. Ennusteen kannalta merkitsee tarve, ei se mitä merkkiä sattui olemaan
+hyllyssä — brändi vaihtuu tapahtumien välissä, tarve ei.
+
+- Ryhmällä on **perusyksikkö** (vapaa teksti kuten `items.unit`: 'kg', 'l', 'pkt'…).
+  Tuotteen määrä muunnetaan siihen: jos tuotteen oma yksikkö on jo sama, kerroin on 1;
+  muuten kerroin on `pack_size`, kun `pack_unit` vastaa perusyksikköä. Muussa tapauksessa
+  tuote **ei ole yhteismitallinen** eikä se osallistu ryhmäsummaan — siitä huomautetaan
+  sekä ryhmänäkymässä että ennusteessa (`item_group_factor`-näkymä, kerroin NULL).
+- Ryhmä on valinnainen. Ryhmättömät tuotteet näkyvät ennusteessa omana osionaan.
+- Ryhmän varastosaldo lasketaan **kaikista** jäsentuotteista, myös niistä joita ei ole
+  kulutettu vertailutapahtumissa (esim. juuri ostettu uusi merkki).
+
+**Sponsorius** on kirjauksen, ei tuotteen ominaisuus (`movements.sponsored`). Sama juusto
+voi olla yhtenä vuonna lahjoitus ja toisena ostettu, joten lippu kiinnitetään saapuvaan
+tavaraan (`lisays`). Kulutus — ja siten ennuste — lasketaan täysin samoin riippumatta
+siitä kuka tavaran maksoi: muuten menekki aliarvioituisi niiltä osin kuin sponsorit ovat
+sen kattaneet. Sponsorius kertoo vain **mistä tarve katettiin**:
+
+- Ennusteessa oma rivi tarpeen vieressä, orgeihin skaalattuna samoin kuin tarve.
+- Sanamuoto seuraa pohjatapahtumien määrää: yksi tapahtuma → "viime kerralla sponsorilta
+  12 kg", useampi → "aikaisemmin keskimäärin sponsorilta 12 kg (5 tapahtumaa)". Ilman
+  sponsorihistoriaa riviä ei näytetä lainkaan — "0 kg" näyttäisi tiedolta vaikka on
+  tiedon puutetta.
+- Tapahtumaraportissa per tuote "tästä sponsorilta".
+
+### 3.9 Historiatuonti
 
 Vanhat tapahtumat (Excel-taulukot yms.) tuodaan lokiin **päivätasolla**, jotta rakennus-
 päivien ja tapahtumapäivien ero ja menekin kehitys tapahtuman edetessä näkyvät — ei siis
@@ -205,9 +234,29 @@ CREATE TABLE items (
   returnable BOOLEAN NOT NULL DEFAULT FALSE,
   archived BOOLEAN NOT NULL DEFAULT FALSE,
   note TEXT,
+  group_id INT REFERENCES item_groups(id),  -- valinnainen tuoteryhmä (§3.8)
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   created_by INT REFERENCES users(id)
 );
+
+-- Tuoteryhmä: saman tarpeen eri brändit ja pakkauskoot yhdessä (§3.8).
+CREATE TABLE item_groups (
+  id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  base_unit TEXT NOT NULL,         -- perusyksikkö, johon jäsenten määrät muunnetaan
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_by INT REFERENCES users(id)
+);
+CREATE UNIQUE INDEX item_groups_name_uniq ON item_groups (lower(name));
+
+-- Muunnoskerroin tuotteen yksiköstä ryhmän perusyksikköön; NULL = ei yhteismitallinen.
+CREATE VIEW item_group_factor AS
+SELECT i.id AS item_id, g.id AS group_id, g.name AS group_name, g.base_unit,
+  CASE WHEN i.unit = g.base_unit THEN 1::numeric
+       WHEN i.pack_unit = g.base_unit AND i.pack_size IS NOT NULL THEN i.pack_size
+  END AS factor
+FROM items i JOIN item_groups g ON g.id = i.group_id;
 
 -- Yksi havainnollistava valokuva per tuote (§3.6). Kokorajat ovat viimeinen suoja;
 -- ensisijaisesti selain pienentää kuvan ja backend hylkää ylisuuret.
@@ -234,7 +283,8 @@ CREATE TABLE movements (
   note TEXT,
   voided BOOLEAN NOT NULL DEFAULT FALSE,
   voids_id BIGINT REFERENCES movements(id),
-  import_batch TEXT,               -- historiatuonnin erätunniste (§3.8); NULL = normaali kirjaus
+  import_batch TEXT,               -- historiatuonnin erätunniste (§3.9); NULL = normaali kirjaus
+  sponsored BOOLEAN NOT NULL DEFAULT FALSE, -- lisäys saatiin lahjoituksena (§3.8)
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_mov_item    ON movements(item_id);
@@ -324,8 +374,9 @@ Kaikki JSON, autentikointi cookiessa. Virheet `{ error }` + HTTP-koodi.
 
 **Tuotteet**
 - `GET /api/items?category=&archived=false&q=` → tuotteet + varastosaldo (varasto_stock)
-- `POST /api/items {name,category,unit,pack_size?,pack_unit?,returnable,note?}`
-- `PATCH /api/items/:id {name?,unit?,pack_size?,pack_unit?,returnable?,note?}`
+  + ryhmätiedot (`group_id`, `group_name`, `group_base_unit`, `group_factor`)
+- `POST /api/items {name,category,unit,pack_size?,pack_unit?,returnable,note?,group_id?}`
+- `PATCH /api/items/:id {name?,unit?,pack_size?,pack_unit?,returnable?,note?,group_id?}`
 - `POST /api/items/:id/archive` · `POST /api/items/:id/unarchive`
 - `GET /api/items/:id` → tiedot + varastosaldo + sijaintijakauma (palautuvat) + historia
 - Listaus ja yksittäishaku palauttavat myös `has_photo` + `photo_updated_at` (ei kuvan tavuja)
@@ -336,6 +387,12 @@ Kaikki JSON, autentikointi cookiessa. Virheet `{ error }` + HTTP-koodi.
 - `DELETE /api/items/:id/photo`
 - `GET /api/items/:id/photo[?v=<photo_updated_at>]` → näyttökuva (binääri)
 - `GET /api/items/:id/photo/thumb` → pikkukuva (binääri)
+
+**Tuoteryhmät** (§3.8)
+- `GET /api/groups[?active=all]` → ryhmät + tuotemäärä + yhteismitattomien määrä
+- `POST /api/groups {name, base_unit}` · `PATCH /api/groups/:id {name?,base_unit?,active?}`
+  (409 jos samanniminen ryhmä on jo olemassa)
+- `GET /api/groups/:id/items` → ryhmän tuotteet + muunnoskerroin (NULL = ei yhteismitallinen)
 
 **Sijainnit**
 - `GET /api/locations?active=true` · `POST /api/locations {name}` (kind='sijainti')
@@ -349,7 +406,7 @@ Kaikki JSON, autentikointi cookiessa. Virheet `{ error }` + HTTP-koodi.
 - Kaikki palauttavat myös `org_count`, `days_manual` ja `days_effective` (`event_metrics`, §3.7)
 
 **Kirjaukset** (loki). Jokainen leimataan aktiiviseen tapahtumaan (event_id) ja käyttäjään.
-- `POST /api/movements/add       {item_id, quantity, note?}`
+- `POST /api/movements/add       {item_id, quantity, note?, sponsored?}` (sponsored = lahjoitus, §3.8)
 - `POST /api/movements/deploy    {item_id, location_id, quantity, note?}`  (vienti; vaatii returnable)
 - `POST /api/movements/return    {item_id, location_id, quantity, note?}`  (palautus; vaatii returnable)
 - `POST /api/movements/consume   {item_id, quantity, location_id?, note?}` (kulutus)
@@ -357,7 +414,7 @@ Kaikki JSON, autentikointi cookiessa. Virheet `{ error }` + HTTP-koodi.
 - `GET  /api/movements?event_id=&item_id=&type=&location_id=&from=&to=&limit=&offset=` → loki, uusin ensin
 - `POST /api/movements/:id/void` → merkitsee rivin `voided=true` (poistaa sen vaikutuksen saldosta)
 
-**Historiatuonti** (§3.8). Poikkeus yllä olevaan: rivit kirjataan annettuun tapahtumaan ja
+**Historiatuonti** (§3.9). Poikkeus yllä olevaan: rivit kirjataan annettuun tapahtumaan ja
 annetulle päivälle, ei aktiiviseen tapahtumaan eikä nykyhetkeen.
 - `POST /api/movements/import {event_id, balance_with_additions, rows:[{item_id,date,quantity,type?,note?}]}`
   → `{batch, rows, balancing, inserted, event}`; 409 jos jokin saldo jäisi negatiiviseksi
@@ -408,14 +465,17 @@ Mobile-first, isot napit, suomeksi. Alapalkki: Etusivu / Inventaario / Kirjaa / 
    luonnin yhteydessä tai muokata jälkikäteen paikan päällä (§3.7).
 7. **Raportit:** tapahtumavalinta → yhteenveto per tuote + päiväkohtainen kulutus; näyttää
    sekä laskentayksikön että painon. Vienti CSV:nä.
-8. **Ennuste:** suunnitellun tapahtuman orgit + kesto → laskentatapa (per orgi / per orgi
+8. **Tuoteryhmät:** ryhmien luonti (nimi + perusyksikkö), jäsentuotteiden listaus
+   muunnoskertoimineen, piilotus. Ryhmä valitaan tuotteen luonti- ja muokkauslomakkeessa.
+9. **Ennuste:** suunnitellun tapahtuman orgit + kesto → laskentatapa (per orgi / per orgi
    per päivä) → vertailutapahtumien täppäys → per tuote arvioitu tarve, varastosaldo ja
-   ostettava määrä + luottamustiedot. Samalla sivulla kulutus yhteensä ja kertymä
-   valituista tapahtumista (tai koko historiasta).
-9. **Historiatuonti:** tapahtuman valinta → rivien liittäminen taulukosta (tuote, päivä,
-   määrä) → esikatselu, joka kertoo mitkä rivit eivät kelpaa ja miksi → tuonti. Aiemmat
-   tuonnit listataan ja kukin voidaan perua kokonaan.
-10. **Käyttäjät** (admin).
+   ostettava määrä + luottamustiedot. Kytkin **Ryhmittäin / Tuotteittain**: ryhmätaso on
+   oletus (ostopäätös tehdään siellä), tuoterivit avautuvat ryhmän alle. Samalla sivulla
+   kulutus yhteensä ja kertymä valituista tapahtumista (tai koko historiasta).
+10. **Historiatuonti:** tapahtuman valinta → rivien liittäminen taulukosta (tuote, päivä,
+    määrä) → esikatselu, joka kertoo mitkä rivit eivät kelpaa ja miksi → tuonti. Aiemmat
+    tuonnit listataan ja kukin voidaan perua kokonaan.
+11. **Käyttäjät** (admin).
 
 UX: negatiivista saldoa ei sallita — selkeä virhe. Määrät sallivat desimaalit. Inventointi
 näyttää nykysaldon esitäytettynä, käyttäjä korjaa lasketun luvun.
@@ -516,7 +576,12 @@ mallinnusta, ei automaattista tilausten lähetystä.
 11. **Historiatuonti:** taulukosta liitetyt rivit tallentuvat annetulle päivälle ja annettuun
     tapahtumaan, tuntematon tuotenimi tai virheellinen päivä raportoidaan tuomatta mitään,
     ja koko tuontierän voi perua yhdellä toiminnolla.
-12. **Ennuste:** tapahtumalle voi kirjata orgien määrän ja keston; kun kaksi aiempaa
+12. **Tuoteryhmä:** kahden eri merkkisen ja eri pakkauskokoisen tuotteen kulutus summautuu
+    ryhmän perusyksikössä (esim. 500 g ja 1 kg juustopakkaukset kiloina), ja tuote jonka
+    yksikköä ei voi muuntaa jää summan ulkopuolelle näkyvällä huomautuksella.
+13. **Sponsorius:** lisäyksen voi merkitä lahjoitukseksi; se ei muuta kulutusta eikä
+    ennusteen tarvetta, mutta näkyy omana lukunaan ennusteessa ja tapahtumaraportissa.
+14. **Ennuste:** tapahtumalle voi kirjata orgien määrän ja keston; kun kaksi aiempaa
     tapahtumaa on valittu pohjaksi, ennuste antaa per tuote arvioidun tarpeen, varasto-
     saldon ja ostettavan määrän molemmilla laskentatavoilla. Tapahtuma jolta puuttuu
     orgimäärä jätetään laskennasta pois ja siitä huomautetaan.

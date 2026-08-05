@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api, EventRow } from '../api';
 import { useAuth } from '../auth';
-import { Home, Package, Pencil, BarChart3, TrendingUp, Upload, MapPin, Calendar, Users, Sun, Moon } from 'lucide-react';
+import { Home, Package, Pencil, BarChart3, TrendingUp, Upload, Layers, MapPin, Calendar, Users, Sun, Moon } from 'lucide-react';
 import { t } from '../i18n';
 import { PotLogo } from './PotLogo';
 
@@ -18,6 +18,7 @@ const primaryNav = [
 // Vain työpöydän sivupalkissa — mobiilissa nämä löytyvät etusivun korteista.
 const secondaryNav = [
   { to: '/ennuste', label: t.nav.forecast, icon: TrendingUp, end: false },
+  { to: '/tuoteryhmat', label: t.nav.groups, icon: Layers, end: false },
   { to: '/sijainnit', label: t.nav.locations, icon: MapPin, end: false },
   { to: '/tapahtumat', label: t.nav.events, icon: Calendar, end: false },
   { to: '/tuonti', label: t.nav.importData, icon: Upload, end: false },

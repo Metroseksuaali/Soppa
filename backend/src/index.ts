@@ -13,6 +13,7 @@ import { errorHandler } from './util';
 import { authRouter } from './routes/auth';
 import { usersRouter } from './routes/users';
 import { itemsRouter } from './routes/items';
+import { groupsRouter } from './routes/groups';
 import { locationsRouter } from './routes/locations';
 import { eventsRouter } from './routes/events';
 import { movementsRouter } from './routes/movements';
@@ -57,6 +58,7 @@ async function main() {
   app.use('/api/auth', authRouter);
   app.use('/api/users', usersRouter);
   app.use('/api/items', itemsRouter);
+  app.use('/api/groups', groupsRouter);
   app.use('/api/locations', locationsRouter);
   app.use('/api/events', eventsRouter);
   app.use('/api/movements', movementsRouter);

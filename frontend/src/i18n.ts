@@ -20,6 +20,7 @@ export const t = {
     reports: 'Raportit',
     forecast: 'Ennuste',
     importData: 'Historiatuonti',
+    groups: 'Tuoteryhmät',
     locations: 'Sijainnit',
     events: 'Tapahtumat',
     users: 'Käyttäjät',
@@ -99,6 +100,7 @@ export const t = {
     events: 'Tapahtumat',
     forecast: 'Ennuste',
     importData: 'Historiatuonti',
+    groups: 'Tuoteryhmät',
     users: 'Käyttäjät',
     actions: {
       lisays: 'Lisää',
@@ -128,6 +130,11 @@ export const t = {
     packUnitPlaceholder: 'kg, l',
     noteLabel: 'Muistiinpano (valinn.)',
     create: 'Luo tuote',
+    group: 'Tuoteryhmä (valinn.)',
+    noGroup: '— ei ryhmää —',
+    groupHint: 'Ryhmä yhdistää saman tarpeen eri brändit ennusteessa (esim. "Juusto").',
+    groupIncompatible: (base: string) =>
+      `Huom: tuotteen määrää ei voi muuntaa ryhmän perusyksikköön (${base}). Lisää pakkauskoko, tai tuote jää ryhmäsumman ulkopuolelle.`,
   },
 
   // Tuotenäkymä
@@ -182,6 +189,8 @@ export const t = {
     chooseLocation: 'Valitse sijainti',
     confirm: (type: string) => `Vahvista: ${type}`,
     chooseItemError: 'Valitse tuote',
+    sponsored: 'Sponsorilahjoitus',
+    sponsoredHint: 'Tavara saatiin maksutta. Ei vaikuta saldoon eikä ennusteeseen — näkyy raporteissa.',
   },
 
   // Sijainnit
@@ -219,6 +228,29 @@ export const t = {
     newDaysPlaceholder: 'Kesto (pv)',
   },
 
+  // Tuoteryhmät
+  groups: {
+    title: 'Tuoteryhmät',
+    intro:
+      'Ryhmä kokoaa saman tarpeen eri brändit ja pakkauskoot yhteen: "Juusto" voi sisältää Arki juustoviipaleen ja Oltermannin. Ennuste ja raportit voivat laskea ryhmän yhtenä lukuna.',
+    newPlaceholder: 'Uuden ryhmän nimi',
+    baseUnit: 'Perusyksikkö',
+    baseUnitHint:
+      'Yksikkö johon ryhmän tuotteet muunnetaan. Tuotteella pitää olla pakkauskoko tässä yksikössä (esim. 500 g pkt → 0,5 kg), tai sen oma yksikkö on jo sama.',
+    itemCount: (n: number) => (n === 1 ? '1 tuote' : `${n} tuotetta`),
+    incompatibleCount: (n: number) => `${n} ei yhteismitallinen`,
+    hiddenTag: 'Piilotettu',
+    hide: 'Piilota',
+    show: 'Näytä',
+    rename: 'Nimeä uudelleen',
+    members: 'Ryhmän tuotteet',
+    noMembers: 'Ei tuotteita tässä ryhmässä.',
+    factor: (itemUnit: string, factor: string, baseUnit: string) =>
+      `1 ${itemUnit} = ${factor} ${baseUnit}`,
+    factorMissing: 'Yksikköä ei voi muuntaa',
+    empty: 'Ei tuoteryhmiä.',
+  },
+
   // Käyttäjät
   users: {
     title: 'Käyttäjät',
@@ -246,6 +278,7 @@ export const t = {
     perItem: 'Yhteenveto per tuote',
     noMovements: 'Ei kirjauksia tässä tapahtumassa.',
     added: 'Lisätty',
+    addedSponsored: 'Tästä sponsorilta',
     consumed: 'Kulutettu',
     outNow: 'Ulkona nyt',
     stockNow: 'Varastosaldo',
@@ -276,7 +309,7 @@ export const t = {
     eventHint: 'Rivit kirjataan tähän tapahtumaan — ei aktiiviseen.',
     dataTitle: '2. Rivit',
     formatHint:
-      'Yksi rivi per tuote ja päivä: tuote, päivä, määrä — erottimena sarkain tai puolipiste. Voit liittää suoraan taulukkolaskennasta. Neljäs sarake (kulutus / lisäys) on valinnainen, oletus kulutus.',
+      'Yksi rivi per tuote ja päivä: tuote, päivä, määrä — erottimena sarkain tai puolipiste. Voit liittää suoraan taulukkolaskennasta. Neljäs sarake (kulutus / lisäys) on valinnainen, oletus kulutus. Viides sarake "sponsori" merkitsee lisäyksen lahjoitukseksi.',
     example: 'Esimerkki:\nJuusto\t4.8.2026\t12\nKertismuki\t4.8.2026\t450\nJuusto\t5.8.2026\t9,5',
     placeholder: 'Liitä rivit tähän…',
     balanceLabel: 'Luo jokaiselle kulutukselle vastaava lisäys',
@@ -343,8 +376,19 @@ export const t = {
     noData: 'Valituista tapahtumista ei löydy kulutuskirjauksia.',
     archivedTag: 'Arkistoitu',
 
+    // Yhden tapahtuman kohdalla "viime kerralla" on luettavampi kuin "1/1 tapahtumaa".
     confidence: (used: number, total: number) =>
-      `${used}/${total} tapahtumaa pohjana`,
+      used === 1 && total === 1 ? 'Viime kerran perusteella' : `${used}/${total} tapahtumaa pohjana`,
+
+    // Sponsoriosuus. Sanamuoto riippuu siitä montako tapahtumaa on pohjana:
+    // yksi -> "viime kerralla", useampi -> "aikaisemmin keskimäärin".
+    sponsoredLine: (amount: string, events: number) =>
+      events === 1
+        ? `viime kerralla sponsorilta ${amount}`
+        : `aikaisemmin keskimäärin sponsorilta ${amount} (${events} tapahtumaa)`,
+    sponsoredTag: 'Sponsori',
+    sponsoredHint:
+      'Sponsorien tuoma tavara lasketaan tarpeeseen normaalisti — se vain kertoo paljonko tarpeesta katettiin lahjoituksilla.',
     spread: (min: string, max: string, unit: string, per: string) =>
       `Vaihteluväli ${min}–${max} ${unit} ${per}`,
     lowConfidence: 'Vain yksi tapahtuma pohjana — arvio epävarma.',
@@ -354,6 +398,19 @@ export const t = {
     historyRow: (orgs: number, days: number) => `${orgs} orgia · ${days} pv`,
     perOrgLabel: '/ orgi',
     perOrgDayLabel: '/ orgi / pv',
+
+    // Ryhmätaso
+    levelGroup: 'Ryhmittäin',
+    levelItem: 'Tuotteittain',
+    levelHint:
+      'Ryhmittäin-näkymä yhdistää brändit ja pakkauskoot (esim. kaikki juustot kiloina). Ostopäätös tehdään yleensä tällä tasolla.',
+    ungrouped: 'Ei ryhmää',
+    ungroupedHint: 'Näille tuotteille ei ole valittu tuoteryhmää — ennuste lasketaan tuotekohtaisesti.',
+    groupMembers: (n: number) => (n === 1 ? '1 tuote' : `${n} tuotetta`),
+    incompatible: (names: string) =>
+      `Ei mukana ryhmäsummassa (yksikköä ei voi muuntaa): ${names}. Lisää tuotteelle pakkauskoko ryhmän perusyksikössä.`,
+    noGroups: 'Yhtään tuoteryhmää ei ole vielä luotu.',
+    manageGroups: 'Hallitse tuoteryhmiä',
 
     statsTitle: 'Kulutus yhteensä',
     statsHint: 'Valittujen tapahtumien yhteenlaskettu menekki — ja kertymä tapahtuma kerrallaan.',

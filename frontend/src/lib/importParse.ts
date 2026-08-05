@@ -13,6 +13,8 @@ export interface ParsedRow {
   date: string | null; // ISO VVVV-KK-PP
   quantity: number | null;
   type: 'kulutus' | 'lisays';
+  /** Viides sarake "sponsori": lisäys saatiin lahjoituksena. */
+  sponsored: boolean;
   error: string | null;
 }
 
@@ -66,6 +68,7 @@ export function parseImportText(text: string, items: Item[], fallbackYear: numbe
       date: null,
       quantity: null,
       type: 'kulutus',
+      sponsored: false,
       error: null,
     };
 
@@ -81,6 +84,7 @@ export function parseImportText(text: string, items: Item[], fallbackYear: numbe
     row.quantity = Number.isFinite(qty) ? qty : null;
     const type = parseType(cells[3]);
     if (type) row.type = type;
+    row.sponsored = normalize(cells[4] ?? '') === 'sponsori';
 
     // Otsikkorivi (esim. "Tuote  Päivä  Määrä") tunnistuu siitä ettei mikään kenttä jäsenny.
     if (!row.item && !row.date && row.quantity === null && idx === 0) return;
