@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, ItemDetail, ItemGroup } from '../api';
+import { api, Barcode, ItemDetail, ItemGroup } from '../api';
 import { Spinner, ErrorMsg, Modal, CategoryChip } from '../components/ui';
 import { ItemPhoto } from '../components/ItemPhoto';
-import { ArrowLeft } from 'lucide-react';
+import { ScanButton } from '../components/BarcodeScanner';
+import { ArrowLeft, Trash2 } from 'lucide-react';
 import { fmtQty, fmtDateTime, typeSign, fmtNum, parseNum } from '../lib/format';
 import { t } from '../i18n';
 
@@ -13,6 +14,9 @@ export function ItemDetailPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [showEdit, setShowEdit] = useState(false);
+  // Listaus antoi mukaan kategoriavälilehden ja haun — palataan siihen näkymään, ei alkuun.
+  const [listParams] = useSearchParams();
+  const backTo = `/inventaario${listParams.toString() ? `?${listParams}` : ''}`;
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['item', id],
@@ -43,7 +47,7 @@ export function ItemDetailPage() {
 
   return (
     <div className="space-y-4 md:max-w-2xl">
-      <Link to="/inventaario" className="inline-flex items-center gap-1 text-brand text-sm font-medium">
+      <Link to={backTo} className="inline-flex items-center gap-1 text-brand text-sm font-medium">
         <ArrowLeft className="w-4 h-4" />
         {t.common.back}
       </Link>
@@ -98,6 +102,8 @@ export function ItemDetailPage() {
         hasPhoto={data.has_photo}
         photoUpdatedAt={data.photo_updated_at}
       />
+
+      <BarcodeCard itemId={data.id} barcodes={data.barcodes ?? []} />
 
       {data.returnable && data.locations.length > 0 && (
         <div className="card p-4">
@@ -161,6 +167,77 @@ export function ItemDetailPage() {
       </div>
 
       <EditItemModal open={showEdit} onClose={() => setShowEdit(false)} item={data} />
+    </div>
+  );
+}
+
+// Tuotteen viivakoodit. Koodeja voi olla useampi (eri pakkauskoko, uusi ja vanha EAN),
+// ja sama koodi voi kuulua vain yhdelle tuotteelle — backend torjuu päällekkäisyyden 409:llä.
+function BarcodeCard({ itemId, barcodes }: { itemId: number; barcodes: Barcode[] }) {
+  const qc = useQueryClient();
+  const [msg, setMsg] = useState<string | null>(null);
+
+  function refresh() {
+    qc.invalidateQueries({ queryKey: ['item', String(itemId)] });
+  }
+
+  const add = useMutation({
+    mutationFn: (code: string) => api.post(`/items/${itemId}/barcodes`, { code }),
+    onSuccess: (_res, code) => {
+      setMsg(t.barcode.added(code.trim().toUpperCase()));
+      refresh();
+    },
+  });
+
+  const remove = useMutation({
+    mutationFn: (code: string) => api.del(`/items/${itemId}/barcodes/${encodeURIComponent(code)}`),
+    onSuccess: () => {
+      setMsg(null);
+      refresh();
+    },
+  });
+
+  return (
+    <div className="card p-4">
+      <div className="flex items-center justify-between mb-2">
+        <h2 className="font-semibold">{t.barcode.title}</h2>
+        <ScanButton
+          onDetect={(code) => {
+            setMsg(null);
+            add.mutate(code);
+          }}
+          className="btn-secondary py-2 px-3 text-sm flex items-center"
+          label={t.barcode.add}
+        />
+      </div>
+
+      {barcodes.length === 0 ? (
+        <div className="text-sm text-slate-400">{t.barcode.none}</div>
+      ) : (
+        <ul className="divide-y divide-slate-100">
+          {barcodes.map((b) => (
+            <li key={b.code} className="flex items-center justify-between py-2">
+              <span className="font-mono text-sm">{b.code}</span>
+              <button
+                className="text-slate-400 p-1"
+                aria-label={t.barcode.remove}
+                title={t.barcode.remove}
+                disabled={remove.isPending}
+                onClick={() => {
+                  if (confirm(t.barcode.removeConfirm(b.code))) remove.mutate(b.code);
+                }}
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <p className="text-xs text-slate-400 mt-2">{t.barcode.hint}</p>
+      {msg && <div className="mt-2 text-sm text-teal-700">{msg}</div>}
+      {add.error && <div className="mt-2"><ErrorMsg error={add.error} /></div>}
+      {remove.error && <div className="mt-2"><ErrorMsg error={remove.error} /></div>}
     </div>
   );
 }

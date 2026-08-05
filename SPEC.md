@@ -167,6 +167,40 @@ pelkkänä tapahtuman loppusummana. Rivi = tuote + päivä + määrä (+ valinna
 - Tuote tunnistetaan **nimellä**; tuntemattomat nimet raportoidaan eikä niitä luoda
   automaattisesti (kategoria ja yksikkö vaatisivat päätöksen).
 
+### 3.10 Viivakoodi
+
+Tuotteen etsiminen nimellä on kirjaamisen hitain kohta. Pakkauksen viivakoodi on
+vaihtoehtoinen **hakutapa**: koodi → tuote, minkä jälkeen kirjaus etenee tavalliseen
+tapaan (toiminto, määrä). Viivakoodi ei kirjaa mitään, ei vaikuta saldoon eikä
+raportteihin — se on hakemisto, ei domain-käsite.
+
+- **Koodi on tunniste, ei tuotteen ominaisuus:** oma taulu `item_barcodes`, jossa `code`
+  on pääavain. Yhdellä tuotteella voi olla monta koodia (eri pakkauskoko, uusi ja vanha
+  EAN), mutta yksi koodi osoittaa aina täsmälleen yhteen tuotteeseen — muuten skannaus
+  olisi valintalista eikä hyppy oikeaan tuotteeseen. Jos koodi on jo toisella tuotteella,
+  API vastaa **409** ja kertoo kummalla; hiljaista siirtoa ei tehdä.
+- **Normalisointi:** välit pois, isot kirjaimet, sallitut merkit `0-9 A-Z - . _`, pituus
+  4–64. Sama koodi löytyy siis riippumatta siitä luettiinko se kameralla, näppäimistö-
+  skannerilla vai kirjoitettiinko käsin.
+- **Luku kameralla, kaksi moottoria.** Ensisijaisesti selaimen oma `BarcodeDetector`
+  (Android Chrome): nopea eikä lataa mitään. iOS:n Safari ja Firefox eivät toteuta sitä —
+  eikä iPhonessa voi vaihtaa selainta ohi ongelman, koska kaikki iOS-selaimet ovat WebKitin
+  kuoria — joten niissä käytetään `zxing-wasm`-lukijaa. Ehdot sille:
+  - Ladataan **dynaamisesti** vasta kun skanneri avataan selaimessa jolla ei ole omaa
+    lukijaa. Android-käyttäjä ei lataa siitä tavuakaan.
+  - Wasm (~1 Mt) tarjoillaan **omasta `/assets`ista**, ei CDN:stä: sovellus on kirjautumisen
+    takana eikä siitä saa syntyä ulkoista riippuvuutta.
+  - Jätetään PWA:n esiladattavasta paketista pois (`workbox.globIgnores`), jottei jokainen
+    käyttäjä lataa megatavua asennuksessa.
+- **Käsin syöttö on aina näkyvissä** eikä piilotettu hätävaraksi: se on nopein tapa kun
+  koodi on kulunut tai valo on huono, ja se kattaa myös näppäimistöä matkivat käsiskannerit.
+- Kamera vaatii HTTPS:n (tai `localhost`) kummallakin moottorilla — tuotannossa Caddy hoitaa
+  TLS:n. Wasm tarjoillaan `application/wasm`-tyypillä (`nosniff` on päällä).
+- **Kolme paikkaa:** Kirjaa-näkymän tuotevalinta (skannaus valitsee tuotteen),
+  inventaarion haku (skannaus avaa tuotesivun) ja tuotesivu (koodin liittäminen ja
+  poisto). Tuntematon koodi kertoo ettei sitä ole liitetty mihinkään — uutta tuotetta ei
+  luoda automaattisesti (kategoria ja yksikkö vaatisivat päätöksen, kuten §3.9:ssä).
+
 ## 4. Teknologiapino (lukittu)
 
 - **Backend:** Node.js 20 + TypeScript + Express. Postgres-ajuri `pg` (suora SQL, ei
@@ -270,6 +304,15 @@ CREATE TABLE item_photos (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_by INT REFERENCES users(id)
 );
+
+-- Viivakoodit tuotteen löytämiseen (§3.10). code on pääavain: yksi koodi = yksi tuote.
+CREATE TABLE item_barcodes (
+  code TEXT PRIMARY KEY,           -- normalisoitu: välit pois, isot kirjaimet
+  item_id INT NOT NULL REFERENCES items(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  created_by INT REFERENCES users(id)
+);
+CREATE INDEX idx_item_barcodes_item ON item_barcodes(item_id);
 
 CREATE TABLE movements (
   id BIGSERIAL PRIMARY KEY,
@@ -379,7 +422,15 @@ Kaikki JSON, autentikointi cookiessa. Virheet `{ error }` + HTTP-koodi.
 - `PATCH /api/items/:id {name?,unit?,pack_size?,pack_unit?,returnable?,note?,group_id?}`
 - `POST /api/items/:id/archive` · `POST /api/items/:id/unarchive`
 - `GET /api/items/:id` → tiedot + varastosaldo + sijaintijakauma (palautuvat) + historia
+  + `barcodes` (§3.10)
 - Listaus ja yksittäishaku palauttavat myös `has_photo` + `photo_updated_at` (ei kuvan tavuja)
+
+**Viivakoodit** (§3.10). Reitti `/lookup` on rekisteröitävä ennen `GET /:id`:tä.
+- `GET /api/items/lookup?code=6408430000012` → tuote (sama muoto kuin listauksessa);
+  404 jos koodia ei ole liitetty mihinkään tuotteeseen
+- `POST /api/items/:id/barcodes {code}` → 201; 409 jos koodi on jo toisella tuotteella
+  (virheteksti kertoo kummalla), 400 jos koodi ei kelpaa normalisoinnin jälkeen
+- `DELETE /api/items/:id/barcodes/:code`
 
 **Tuotekuva** (§3.6)
 - `PUT /api/items/:id/photo {data, thumb, width?, height?}` — `data`/`thumb` base64, JPEG tai
@@ -454,12 +505,13 @@ Mobile-first, isot napit, suomeksi. Alapalkki: Etusivu / Inventaario / Kirjaa / 
 2. **Etusivu:** aktiivinen tapahtuma + pikanapit (Lisää / Vie / Palauta / Kuluta /
    Inventoi).
 3. **Inventaario:** tuotelista varastosaldoineen ja pikkukuvineen, välilehdet
-   Ruoka/Tavara/Kalusteet, haku. Tuotenäkymä: varastosaldo, kuva (ota/vaihda/poista,
-   napautus suurentaa), montako ulkona (palautuvat, per sijainti), historia,
-   muokkaa/arkistoi.
-4. **Kirjaa (nopea vuo):** valitse tuote (lista näyttää pikkukuvat) → toiminto → määrä
-   (+ sijainti kun vienti/palautus) → vahvista. Muistaa viimeksi käytetyn sijainnin
-   oletuksena.
+   Ruoka/Tavara/Kalusteet, haku + viivakoodiskannaus (avaa tuotteen). Välilehti ja haku
+   ovat osoitteessa (`?cat=&q=`), joten tuotteesta palataan siihen näkymään josta lähdettiin.
+   Tuotenäkymä: varastosaldo, kuva (ota/vaihda/poista, napautus suurentaa), viivakoodit
+   (lisää/poista), montako ulkona (palautuvat, per sijainti), historia, muokkaa/arkistoi.
+4. **Kirjaa (nopea vuo):** valitse tuote (lista näyttää pikkukuvat; haun rinnalla
+   viivakoodiskannaus, §3.10) → toiminto → määrä (+ sijainti kun vienti/palautus) →
+   vahvista. Muistaa viimeksi käytetyn sijainnin oletuksena.
 5. **Sijainnit:** listaa/luo/piilota sijainteja.
 6. **Tapahtumat:** luo, aseta aktiiviseksi, sulje. Orgien määrän ja keston voi syöttää
    luonnin yhteydessä tai muokata jälkikäteen paikan päällä (§3.7).
@@ -547,9 +599,11 @@ Luo jos ei ole: admin-käyttäjä (`ADMIN_USERNAME`/`ADMIN_PASSWORD`) ja **Varas
 
 ## 14. Ei kuulu tähän versioon
 
-Offline-tila, viivakoodit, useampi varasto, toimittaja-/hinta-/kustannushallinta,
-monikielisyys. (Jätä `items`-tauluun kommentti mahdollisesta `barcode`-sarakkeesta, mutta
-älä toteuta.)
+Offline-tila, useampi varasto, toimittaja-/hinta-/kustannushallinta, monikielisyys.
+
+Viivakoodi (§3.10) **kuuluu** toteutukseen, mutta vain hakutapana: koodi → tuote. Ei
+tuotetietojen hakua ulkoisista tuotetietokannoista, ei koodin luomista omille tuotteille,
+ei viivakoodin perusteella tehtävää automaattikirjausta.
 
 Kulutusennuste (§3.7) **kuuluu** toteutukseen, mutta pysyy tarkoituksella yksinkertaisena:
 painotettu keskiarvo valituista tapahtumista. Ei tuoreuspainotusta, ei kausivaihtelun
@@ -581,7 +635,11 @@ mallinnusta, ei automaattista tilausten lähetystä.
     yksikköä ei voi muuntaa jää summan ulkopuolelle näkyvällä huomautuksella.
 13. **Sponsorius:** lisäyksen voi merkitä lahjoitukseksi; se ei muuta kulutusta eikä
     ennusteen tarvetta, mutta näkyy omana lukunaan ennusteessa ja tapahtumaraportissa.
-14. **Ennuste:** tapahtumalle voi kirjata orgien määrän ja keston; kun kaksi aiempaa
+14. **Viivakoodi:** tuotteelle liitetty koodi löytää tuotteen sekä kirjatessa että
+    inventaariossa — kameralla luettuna tai käsin kirjoitettuna, sekä Androidilla että
+    iPhonella. Sama koodi ei voi kuulua kahdelle tuotteelle (409), ja tuntematon koodi
+    kertoo ettei sitä ole liitetty.
+15. **Ennuste:** tapahtumalle voi kirjata orgien määrän ja keston; kun kaksi aiempaa
     tapahtumaa on valittu pohjaksi, ennuste antaa per tuote arvioidun tarpeen, varasto-
     saldon ja ostettavan määrän molemmilla laskentatavoilla. Tapahtuma jolta puuttuu
     orgimäärä jätetään laskennasta pois ja siitä huomautetaan.

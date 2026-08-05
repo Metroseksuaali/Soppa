@@ -1,24 +1,59 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { api, Item, Category, ItemGroup } from '../api';
+import { api, lookupBarcode, Item, Category, ItemGroup } from '../api';
 import { Spinner, ErrorMsg, Modal, CategoryChip } from '../components/ui';
 import { ItemThumb } from '../components/ItemPhoto';
+import { ScanButton } from '../components/BarcodeScanner';
 import { fmtQty, parseNum } from '../lib/format';
 import { t } from '../i18n';
 
 const TABS: Category[] = ['ruoka', 'tavara', 'kaluste'];
 
 export function InventoryPage() {
-  const [tab, setTab] = useState<Category>('ruoka');
-  const [q, setQ] = useState('');
+  // Välilehti ja haku elävät osoitteessa, ei komponentin tilassa: kun tuotteesta palataan
+  // takaisin, listaus avautuu siihen kategoriaan josta lähdettiin (replace = ei roskaa
+  // selaimen historiaan välilehteä vaihdettaessa).
+  const [params, setParams] = useSearchParams();
+  const navigate = useNavigate();
+  const catParam = params.get('cat') as Category | null;
+  const tab: Category = catParam && TABS.includes(catParam) ? catParam : 'ruoka';
+  const q = params.get('q') ?? '';
   const [showCreate, setShowCreate] = useState(false);
+  const [scanMsg, setScanMsg] = useState<{ text: string; hint?: string } | null>(null);
+
+  function setParam(key: 'cat' | 'q', value: string) {
+    setParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        if (value) next.set(key, value);
+        else next.delete(key);
+        return next;
+      },
+      { replace: true }
+    );
+  }
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['items', tab, q],
     queryFn: () =>
       api.get<Item[]>(`/items?category=${tab}&archived=false${q ? `&q=${encodeURIComponent(q)}` : ''}`),
   });
+
+  // Listalta tuotteeseen mennään nykyinen suodatus mukana, jotta paluulinkki osaa palata siihen.
+  const listQuery = params.toString();
+  const itemLink = (id: number) => `/inventaario/${id}${listQuery ? `?${listQuery}` : ''}`;
+
+  async function onScan(code: string) {
+    setScanMsg(null);
+    try {
+      const item = await lookupBarcode(code);
+      if (item) navigate(itemLink(item.id));
+      else setScanMsg({ text: t.barcode.notFound(code), hint: t.barcode.notFoundHint });
+    } catch {
+      setScanMsg({ text: t.barcode.lookupFailed });
+    }
+  }
 
   return (
     <div className="space-y-4">
@@ -29,18 +64,28 @@ export function InventoryPage() {
         </button>
       </div>
 
-      <input
-        className="input"
-        placeholder={t.inventory.search}
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-      />
+      <div className="flex gap-2">
+        <input
+          className="input"
+          placeholder={t.inventory.search}
+          value={q}
+          onChange={(e) => setParam('q', e.target.value)}
+        />
+        <ScanButton onDetect={onScan} />
+      </div>
+
+      {scanMsg && (
+        <div className="rounded-xl bg-amber-50 text-amber-800 px-4 py-3 text-sm">
+          {scanMsg.text}
+          {scanMsg.hint && <span className="block text-xs mt-1">{scanMsg.hint}</span>}
+        </div>
+      )}
 
       <div className="grid grid-cols-3 gap-1 bg-slate-200 rounded-xl p-1">
         {TABS.map((cat) => (
           <button
             key={cat}
-            onClick={() => setTab(cat)}
+            onClick={() => setParam('cat', cat)}
             className={`py-2 rounded-lg text-sm font-semibold ${
               tab === cat ? 'bg-white text-brand shadow-sm' : 'text-slate-500'
             }`}
@@ -60,7 +105,7 @@ export function InventoryPage() {
       <ul className="grid gap-2 sm:grid-cols-2">
         {data?.map((item) => (
           <li key={item.id}>
-            <Link to={`/inventaario/${item.id}`} className="card p-4 flex items-center gap-3">
+            <Link to={itemLink(item.id)} className="card p-4 flex items-center gap-3">
               <ItemThumb item={item} />
               <div className="min-w-0 flex-1">
                 <div className="font-semibold truncate">{item.name}</div>
