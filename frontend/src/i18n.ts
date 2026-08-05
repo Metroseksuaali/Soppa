@@ -190,7 +190,8 @@ export const t = {
     confirm: (type: string) => `Vahvista: ${type}`,
     chooseItemError: 'Valitse tuote',
     sponsored: 'Sponsorilahjoitus',
-    sponsoredHint: 'Tavara saatiin maksutta. Ei vaikuta saldoon eikä ennusteeseen — näkyy raporteissa.',
+    sponsoredHint:
+      'Tästä erästä ei maksettu. Saldo kasvaa ja kulutus lasketaan ennusteeseen aivan kuten ostetusta tavarasta — merkintä kertoo vain, että tarve katettiin lahjoituksella.',
   },
 
   // Sijainnit
@@ -388,7 +389,7 @@ export const t = {
         : `aikaisemmin keskimäärin sponsorilta ${amount} (${events} tapahtumaa)`,
     sponsoredTag: 'Sponsori',
     sponsoredHint:
-      'Sponsorien tuoma tavara lasketaan tarpeeseen normaalisti — se vain kertoo paljonko tarpeesta katettiin lahjoituksilla.',
+      'Sponsorien tuoma tavara on mukana tarpeessa täysimääräisesti — jos sponsoria ei ensi kerralla ole, tarve on silti sama ja ostettava määrä kasvaa vastaavasti.',
     spread: (min: string, max: string, unit: string, per: string) =>
       `Vaihteluväli ${min}–${max} ${unit} ${per}`,
     lowConfidence: 'Vain yksi tapahtuma pohjana — arvio epävarma.',

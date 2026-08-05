@@ -261,7 +261,12 @@ function ForecastResult({
             <ScopeButton active={level === 'item'} label={t.forecast.levelItem} onClick={() => onLevel('item')} />
           </div>
         </div>
-        <p className="text-xs text-slate-400 mb-3">{t.forecast.levelHint}</p>
+        <p className="text-xs text-slate-400 mb-1">{t.forecast.levelHint}</p>
+        {/* Sponsoriselite näkyy vain kun sponsoridataa on — muuten se olisi turhaa kohinaa. */}
+        {(report.items.some((i) => i.sponsored_events > 0) ||
+          report.groups.some((g) => g.sponsored_events > 0)) && (
+          <p className="text-xs text-slate-400 mb-3">{t.forecast.sponsoredHint}</p>
+        )}
 
         {report.items.length === 0 ? (
           <div className="text-slate-400 text-sm">{t.forecast.noData}</div>
