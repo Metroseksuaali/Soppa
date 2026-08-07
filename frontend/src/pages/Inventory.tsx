@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, lookupBarcode, Item, Category, ItemGroup } from '../api';
 import { Spinner, ErrorMsg, Modal, CategoryChip } from '../components/ui';
 import { ItemThumb } from '../components/ItemPhoto';
-import { ScanButton } from '../components/BarcodeScanner';
+import { ScanButton, SCAN_IN_FIELD } from '../components/BarcodeScanner';
 import { fmtQty, parseNum } from '../lib/format';
 import { t } from '../i18n';
 
@@ -57,21 +57,23 @@ export function InventoryPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold">{t.inventory.title}</h1>
-        <button className="btn-primary py-2 px-3 text-sm" onClick={() => setShowCreate(true)}>
+      <h1 className="text-xl font-bold">{t.inventory.title}</h1>
+
+      {/* Skannaus on hakemisen vaihtoehto, joten se istuu hakukentän sisällä;
+          uuden tuotteen luonti on eri asia ja siksi oma nappi vieressä. */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <input
+            className="input pr-11"
+            placeholder={t.inventory.search}
+            value={q}
+            onChange={(e) => setParam('q', e.target.value)}
+          />
+          <ScanButton onDetect={onScan} className={SCAN_IN_FIELD} />
+        </div>
+        <button className="btn-primary shrink-0" onClick={() => setShowCreate(true)}>
           {t.inventory.newItem}
         </button>
-      </div>
-
-      <div className="flex gap-2">
-        <input
-          className="input"
-          placeholder={t.inventory.search}
-          value={q}
-          onChange={(e) => setParam('q', e.target.value)}
-        />
-        <ScanButton onDetect={onScan} />
       </div>
 
       {scanMsg && (

@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { api, EventRow, Item, ImportBatch, ImportResult } from '../api';
 import { Spinner, ErrorMsg } from '../components/ui';
 import { parseImportText, ParsedRow } from '../lib/importParse';
@@ -73,10 +73,6 @@ export function ImportPage() {
 
   return (
     <div className="space-y-4 md:max-w-3xl">
-      <Link to="/" className="inline-flex items-center gap-1 text-brand-ink text-sm font-medium">
-        <ArrowLeft className="w-4 h-4" />
-        {t.common.backHome}
-      </Link>
       <h1 className="text-xl font-bold">{t.importPage.title}</h1>
       <p className="text-sm text-fg-muted">{t.importPage.intro}</p>
 

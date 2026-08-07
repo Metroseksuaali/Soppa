@@ -34,10 +34,6 @@
   --c-accent-soft: 204 251 241;
   --g-from: 124 58 237; /* liukuvärin päät (kirkkaammat kuin täyttövärit) */
   --g-to: 20 184 166;
-
-  /* Mitta, ei väri: mobiilin alapalkin korkeus (Layout.tsx ruudukko h-16 +
-     1px yläreuna). Käytetään .above-bottom-nav-apuluokassa. */
-  --nav-h: calc(4rem + 1px);
 }
 
 :root.dark {
@@ -152,12 +148,5 @@ body {
   /* iOS:n kotipainikkeen alue (index.html: viewport-fit=cover). */
   .pb-safe {
     padding-bottom: env(safe-area-inset-bottom, 0px);
-  }
-  /* Kiinnitä elementti heti mobiilin alapalkin päälle. --nav-h on alapalkin
-     ruudukon korkeus (Layout.tsx: h-16) + 1px yläreuna; turva-alue tulee
-     päälle, jotta baari ei jää iPhonen kotipainikkeen alle. Jos alapalkin
-     korkeus muuttuu, muuta --nav-h samalla. */
-  .above-bottom-nav {
-    bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px));
   }
 }

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, Location } from '../api';
-import { ArrowLeft, ChevronRight } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import { Spinner, ErrorMsg } from '../components/ui';
 import { t } from '../i18n';
 
@@ -30,7 +30,6 @@ export function LocationsPage() {
 
   return (
     <div className="space-y-4 md:max-w-2xl">
-      <Link to="/" className="inline-flex items-center gap-1 text-brand-ink text-sm font-medium"><ArrowLeft className="w-4 h-4" />{t.common.backHome}</Link>
       <h1 className="text-xl font-bold">{t.locations.title}</h1>
 
       <div className="card p-4 flex gap-2">

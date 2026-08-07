@@ -1,21 +1,31 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { Plus, Upload, Download, Utensils, ClipboardList } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, lookupBarcode, Item, Location, MovementType } from '../api';
-import { Spinner, ErrorMsg } from '../components/ui';
+import { Spinner, ErrorMsg, movementStyle } from '../components/ui';
 import { ItemThumb } from '../components/ItemPhoto';
-import { ScanButton } from '../components/BarcodeScanner';
+import { ScanButton, SCAN_IN_FIELD } from '../components/BarcodeScanner';
 import { fmtQty, fmtNum, parseNum } from '../lib/format';
 import { t } from '../i18n';
 
 type Action = 'lisays' | 'vienti' | 'palautus' | 'kulutus' | 'inventointi';
 
-const ACTIONS: { key: Action; label: string; needsLoc: boolean; returnableOnly: boolean }[] = [
-  { key: 'lisays', label: t.home.actions.lisays, needsLoc: false, returnableOnly: false },
-  { key: 'vienti', label: t.home.actions.vienti, needsLoc: true, returnableOnly: true },
-  { key: 'palautus', label: t.home.actions.palautus, needsLoc: true, returnableOnly: true },
-  { key: 'kulutus', label: t.home.actions.kulutus, needsLoc: false, returnableOnly: false },
-  { key: 'inventointi', label: t.home.actions.inventointi, needsLoc: false, returnableOnly: false },
+// Ikoni on osa kirjaustyypin tunnistetta värin rinnalla: nuolen suunta kertoo
+// mihin tavara liikkuu, mikä erottaa Vien ja Palautuksen toisistaan nopeammin
+// kuin pelkkä teksti.
+const ACTIONS: {
+  key: Action;
+  label: string;
+  icon: typeof Plus;
+  needsLoc: boolean;
+  returnableOnly: boolean;
+}[] = [
+  { key: 'lisays', label: t.log.actions.lisays, icon: Plus, needsLoc: false, returnableOnly: false },
+  { key: 'vienti', label: t.log.actions.vienti, icon: Upload, needsLoc: true, returnableOnly: true },
+  { key: 'palautus', label: t.log.actions.palautus, icon: Download, needsLoc: true, returnableOnly: true },
+  { key: 'kulutus', label: t.log.actions.kulutus, icon: Utensils, needsLoc: false, returnableOnly: false },
+  { key: 'inventointi', label: t.log.actions.inventointi, icon: ClipboardList, needsLoc: false, returnableOnly: false },
 ];
 
 const LAST_LOC_KEY = 'catering_last_location';
@@ -60,15 +70,12 @@ export function LogPage() {
     if (saved) setLocationId(parseInt(saved, 10));
   }, []);
 
-  // Jos valittu toiminto ei sovi tuotteelle (kuluva + vienti), vaihda lisäykseen.
-  useEffect(() => {
-    if (selectedItem && !selectedItem.returnable) {
-      const cfg = ACTIONS.find((a) => a.key === action);
-      if (cfg?.returnableOnly) setAction('lisays');
-    }
-  }, [selectedItem, action]);
-
   const actionCfg = ACTIONS.find((a) => a.key === action)!;
+
+  // Kuluvaa tuotetta ei voi viedä eikä palauttaa. Ennen tämä yhdistelmä vaihtoi
+  // toiminnon lisäykseksi vaiti — nyt se estää tallennuksen ja kerrotaan syy,
+  // ettei käyttäjä kirjaa muuta kuin luuli kirjaavansa.
+  const actionBlocked = !!selectedItem && actionCfg.returnableOnly && !selectedItem.returnable;
   const sijainnit = (locations ?? []).filter((l) => l.kind === 'sijainti');
 
   const mutation = useMutation({
@@ -142,6 +149,7 @@ export function LogPage() {
 
   const canSubmit =
     !!itemId &&
+    !actionBlocked &&
     (action === 'inventointi' ? counted !== '' : quantity !== '' && parseNum(quantity) > 0) &&
     (!actionCfg.needsLoc || !!locationId);
 
@@ -149,7 +157,15 @@ export function LogPage() {
 
   return (
     <div className="space-y-4 md:max-w-xl">
-      <h1 className="text-xl font-bold">{t.log.title}</h1>
+      {/* Otsikko kertoo valitun toiminnon sen omalla värillä: etusivulla
+          napautettu laatta ja tämä näkymä näyttävät samalta, eikä valinta
+          katoa näkyvistä matkalla. */}
+      <div>
+        <div className="section-title">{t.log.title}</div>
+        <h1 className={`text-xl font-bold leading-tight ${movementStyle[action].ink}`}>
+          {actionCfg.label}
+        </h1>
+      </div>
 
       {done && (
         <div className="rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 px-3 py-2 text-sm flex justify-between items-center">
@@ -160,9 +176,46 @@ export function LogPage() {
         </div>
       )}
 
-      {/* 1. Tuote */}
+      {/* 1. Toiminto — näkyy aina, myös ennen tuotteen valintaa. Etusivun laatta
+          vain esivalitsee tämän; aiemmin valinta paljastui vasta tuotteen
+          jälkeen, mikä sai laatat näyttämään tehottomilta. */}
       <div className="card p-4">
-        <label className="label">{t.log.step1Item}</label>
+        <label className="label">{t.log.step1Action}</label>
+        <div className="grid grid-cols-3 gap-2">
+          {ACTIONS.map((a) => {
+            const st = movementStyle[a.key];
+            const Icon = a.icon;
+            const disabled = !!selectedItem && a.returnableOnly && !selectedItem.returnable;
+            return (
+              <button
+                key={a.key}
+                onClick={() => setAction(a.key)}
+                disabled={disabled}
+                title={disabled ? t.log.returnableOnlyShort : undefined}
+                className={`inline-flex items-center justify-center gap-1.5 px-2 py-2.5 min-h-touch rounded-lg text-sm font-semibold border-2 transition-colors ${
+                  action === a.key
+                    ? `${st.bg} ${st.ink} border-current`
+                    : disabled
+                      ? 'bg-surface text-fg-subtle border-line opacity-50 cursor-not-allowed'
+                      : 'bg-surface text-fg-muted border-line hover:text-fg'
+                }`}
+              >
+                <Icon className="w-4 h-4 shrink-0" />
+                {a.label}
+              </button>
+            );
+          })}
+        </div>
+        {actionBlocked && selectedItem && (
+          <div className="mt-2 rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-300 px-3 py-2 text-sm">
+            {t.log.returnableOnlyBlocked(t.movementTypes[action], selectedItem.name)}
+          </div>
+        )}
+      </div>
+
+      {/* 2. Tuote */}
+      <div className="card p-4">
+        <label className="label">{t.log.step2Item}</label>
         {selectedItem ? (
           <div className="flex items-center gap-3">
             <ItemThumb item={selectedItem} />
@@ -186,14 +239,18 @@ export function LogPage() {
           </div>
         ) : (
           <div>
-            <div className="flex gap-2 mb-2">
+            {/* Kerro miksi lista on lyhyempi kuin inventaariossa. */}
+            {actionCfg.returnableOnly && (
+              <div className="text-xs text-fg-subtle mb-2">{t.log.onlyReturnableShown}</div>
+            )}
+            <div className="relative mb-2">
               <input
-                className="input"
+                className="input pr-11"
                 placeholder={t.inventory.search}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
               />
-              <ScanButton onDetect={onScan} />
+              <ScanButton onDetect={onScan} className={SCAN_IN_FIELD} />
             </div>
 
             {scanMsg && (
@@ -227,30 +284,9 @@ export function LogPage() {
         )}
       </div>
 
-      {selectedItem && (
-        <>
-          {/* 2. Toiminto */}
-          <div className="card p-4">
-            <label className="label">{t.log.step2Action}</label>
-            <div className="grid grid-cols-3 gap-2">
-              {ACTIONS.filter((a) => !a.returnableOnly || selectedItem.returnable).map((a) => (
-                <button
-                  key={a.key}
-                  onClick={() => setAction(a.key)}
-                  className={`py-2.5 min-h-touch rounded-lg text-sm font-semibold border ${
-                    action === a.key
-                      ? 'bg-brand text-brand-fg border-brand'
-                      : 'bg-surface text-fg-muted border-line-strong'
-                  }`}
-                >
-                  {a.label}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* 3. Määrä / laskettu */}
-          <div className="card p-4 space-y-3">
+      {/* 3. Määrä / laskettu — vaatii tuotteen (yksikkö ja nykysaldo). */}
+      {selectedItem && !actionBlocked && (
+        <div className="card p-4 space-y-3">
             {action === 'inventointi' ? (
               <div>
                 <label className="label">{t.log.step3Counted(selectedItem.unit)}</label>
@@ -328,8 +364,7 @@ export function LogPage() {
             <button className="btn-primary w-full" disabled={!canSubmit || mutation.isPending} onClick={() => mutation.mutate()}>
               {mutation.isPending ? t.common.saving : t.log.confirm(t.movementTypes[action])}
             </button>
-          </div>
-        </>
+        </div>
       )}
     </div>
   );

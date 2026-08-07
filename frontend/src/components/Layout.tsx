@@ -1,27 +1,47 @@
-import { ReactNode, useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
+import { ReactNode, useEffect, useState } from 'react';
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api, EventRow } from '../api';
 import { useAuth } from '../auth';
-import { Home, Package, Pencil, BarChart3, TrendingUp, Upload, Layers, MapPin, Calendar, Users, Sun, Moon, LogOut } from 'lucide-react';
+import { Home, Package, Pencil, BarChart3, TrendingUp, Upload, Layers, MapPin, Calendar, Users, Sun, Moon, LogOut, MoreHorizontal, ChevronRight } from 'lucide-react';
 import { t } from '../i18n';
 import { PotLogo } from './PotLogo';
 
-// Mobiilin alapalkki näyttää nämä; työpöydän sivupalkki näyttää nämä + lisälinkit.
-const primaryNav = [
-  { to: '/', label: t.nav.home, icon: Home, end: true },
-  { to: '/inventaario', label: t.nav.inventory, icon: Package, end: false },
-  { to: '/kirjaa', label: t.nav.log, icon: Pencil, end: false },
-  { to: '/raportit', label: t.nav.reports, icon: BarChart3, end: false },
-];
+type NavItem = {
+  to: string;
+  label: string;
+  icon: typeof Home;
+  end: boolean;
+  adminOnly?: boolean;
+};
 
-// Vain työpöydän sivupalkissa — mobiilissa nämä löytyvät etusivun korteista.
-const secondaryNav = [
-  { to: '/ennuste', label: t.nav.forecast, icon: TrendingUp, end: false },
-  { to: '/tuoteryhmat', label: t.nav.groups, icon: Layers, end: false },
-  { to: '/sijainnit', label: t.nav.locations, icon: MapPin, end: false },
-  { to: '/tapahtumat', label: t.nav.events, icon: Calendar, end: false },
-  { to: '/tuonti', label: t.nav.importData, icon: Upload, end: false },
+const NAV = {
+  home: { to: '/', label: t.nav.home, icon: Home, end: true },
+  inventory: { to: '/inventaario', label: t.nav.inventory, icon: Package, end: false },
+  log: { to: '/kirjaa', label: t.nav.log, icon: Pencil, end: false },
+  locations: { to: '/sijainnit', label: t.nav.locations, icon: MapPin, end: false },
+  reports: { to: '/raportit', label: t.nav.reports, icon: BarChart3, end: false },
+  forecast: { to: '/ennuste', label: t.nav.forecast, icon: TrendingUp, end: false },
+  events: { to: '/tapahtumat', label: t.nav.events, icon: Calendar, end: false },
+  groups: { to: '/tuoteryhmat', label: t.nav.groups, icon: Layers, end: false },
+  importData: { to: '/tuonti', label: t.nav.importData, icon: Upload, end: false },
+  users: { to: '/kayttajat', label: t.nav.users, icon: Users, end: false, adminOnly: true },
+} satisfies Record<string, NavItem>;
+
+// Mobiilin alapalkki: neljä tapahtuman aikana jatkuvassa käytössä olevaa
+// (ruudukko on grid-cols-5, viides paikka on Valikko-nappi). Raportteja ja
+// muita luetaan harvemmin kuin kirjataan, joten ne ovat Valikon takana.
+const bottomNav: NavItem[] = [NAV.home, NAV.log, NAV.inventory, NAV.locations];
+
+// Työpöydän sivupalkki ryhmissä: tasainen kymmenen linkin lista ei kertonut
+// mikä on päivittäistä työtä ja mikä kertaluontoista asetusta. Ryhmittely on
+// käyttötiheyden mukaan — ylin ryhmä on tapahtuman aikana jatkuvassa käytössä,
+// alin lähinnä ennen tapahtumaa. Myös ryhmän sisällä järjestys on tiheyden
+// mukaan: tapahtuman aikana kirjataan useammin kuin selataan inventaariota.
+const sidebarGroups: { label?: string; items: NavItem[] }[] = [
+  { items: [NAV.home, NAV.log, NAV.inventory, NAV.locations] },
+  { label: t.nav.groupMonitoring, items: [NAV.reports, NAV.forecast] },
+  { label: t.nav.groupManage, items: [NAV.events, NAV.groups, NAV.importData, NAV.users] },
 ];
 
 // Selaimen osoitepalkin väri seuraa teemaa (arvot: index.css --c-surface / --c-bg).
@@ -34,7 +54,9 @@ const iconBtn =
 export function Layout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [dark, setDark] = useState(() => document.documentElement.classList.contains('dark'));
+  const [moreOpen, setMoreOpen] = useState(false);
 
   function toggleTheme() {
     const next = !document.documentElement.classList.contains('dark');
@@ -60,12 +82,28 @@ export function Layout({ children }: { children: ReactNode }) {
     queryFn: () => api.get<EventRow | null>('/events/active'),
   });
 
-  // Sivupalkin linkit: perusnavigaatio + lisälinkit + käyttäjähallinta (vain admin).
-  const sidebarNav = [
-    ...primaryNav,
-    ...secondaryNav,
-    ...(user?.is_admin ? [{ to: '/kayttajat', label: t.nav.users, icon: Users, end: false }] : []),
-  ];
+  // Pudota admin-linkit muilta ja tyhjäksi jäävä ryhmä kokonaan.
+  const visibleGroups = sidebarGroups
+    .map((g) => ({ ...g, items: g.items.filter((i) => !i.adminOnly || user?.is_admin) }))
+    .filter((g) => g.items.length > 0);
+
+  // Mobiilin Valikko-lehti = samat ryhmät miinus ne jotka jo ovat alapalkissa.
+  // Johdetaan sivupalkista, jottei listoja tarvitse pitää käsin samassa: uusi
+  // NAV-linkki ilmestyy tänne itsestään.
+  const sheetGroups = visibleGroups
+    .map((g) => ({ ...g, items: g.items.filter((i) => !bottomNav.includes(i)) }))
+    .filter((g) => g.items.length > 0);
+
+  // Valikko-nappi näyttää aktiiviselta kun ollaan jollain sen takana olevalla
+  // sivulla — muuten alapalkissa ei näkyisi lainkaan missä ollaan.
+  const moreActive = sheetGroups.some((g) =>
+    g.items.some((i) => location.pathname === i.to || location.pathname.startsWith(`${i.to}/`))
+  );
+
+  // Sulje valikko kun sivu vaihtuu (myös alapalkin muista napeista).
+  useEffect(() => {
+    setMoreOpen(false);
+  }, [location.pathname]);
 
   return (
     <div className="min-h-full bg-app md:flex">
@@ -81,27 +119,32 @@ export function Layout({ children }: { children: ReactNode }) {
           </div>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5">
-          {sidebarNav.map((item) => {
-            const Icon = item.icon;
-            return (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                end={item.end}
-                className={({ isActive }) =>
-                  `flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
-                    isActive
-                      ? 'bg-brand-soft text-brand-ink'
-                      : 'text-fg-muted hover:bg-surface-2 hover:text-fg'
-                  }`
-                }
-              >
-                <Icon className="w-[18px] h-[18px] shrink-0" />
-                {item.label}
-              </NavLink>
-            );
-          })}
+        <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-4">
+          {visibleGroups.map((group, gi) => (
+            <div key={group.label ?? gi} className="space-y-0.5">
+              {group.label && <div className="section-title px-2.5 pb-1">{group.label}</div>}
+              {group.items.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    end={item.end}
+                    className={({ isActive }) =>
+                      `flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
+                        isActive
+                          ? 'bg-brand-soft text-brand-ink'
+                          : 'text-fg-muted hover:bg-surface-2 hover:text-fg'
+                      }`
+                    }
+                  >
+                    <Icon className="w-[18px] h-[18px] shrink-0" />
+                    {item.label}
+                  </NavLink>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
         <div className="border-t border-line px-3 py-3 space-y-2">
@@ -152,12 +195,54 @@ export function Layout({ children }: { children: ReactNode }) {
           <div className="mx-auto w-full md:max-w-5xl">{children}</div>
         </main>
 
+        {/* Taustapeite sulkee valikon mistä tahansa kosketuksesta sen ulkopuolelle.
+            Alapalkki on tämän päällä (z-30), joten Valikko-nappi pysyy näkyvissä ja
+            napautettavissa — sama nappi sulkee valikon, mikä on ilmeisin tapa. */}
+        {moreOpen && (
+          <div
+            className="md:hidden fixed inset-0 z-20 bg-black/40"
+            onClick={() => setMoreOpen(false)}
+            aria-hidden
+          />
+        )}
+
         {/* Mobiilin alapalkki (piilossa työpöydällä) */}
-        <nav className="md:hidden fixed bottom-0 inset-x-0 z-10 bg-surface/90 backdrop-blur border-t border-line max-w-2xl mx-auto pb-safe">
-          {/* Kiinteä korkeus, jotta etusivun kelluva pikatoimintopalkki osaa
-              asettua tarkasti tämän päälle (index.css: --nav-h). */}
-          <div className="grid grid-cols-4 h-16">
-            {primaryNav.map((item) => {
+        <nav className="md:hidden fixed bottom-0 inset-x-0 z-30 bg-surface/90 backdrop-blur border-t border-line max-w-2xl mx-auto pb-safe">
+          {/* Valikko avautuu palkin PÄÄLLE, ei sen yli: bottom-full ankkuroi
+              paneelin alapalkin ylälaitaan, joten palkki jää näkyviin eikä
+              tarvitse arvata mistä valikko sulkeutuu. Ei myöskään kovakoodattua
+              korkeutta — bottom-full seuraa palkin todellista mittaa. */}
+          {moreOpen && (
+            <div className="absolute bottom-full inset-x-0 max-h-[60vh] overflow-y-auto rounded-t-2xl border-t border-line bg-surface px-3 py-3 space-y-4">
+              {sheetGroups.map((group, gi) => (
+                <div key={group.label ?? gi}>
+                  {group.label && <div className="section-title mb-1">{group.label}</div>}
+                  <div className="divide-y divide-line">
+                    {group.items.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <Link
+                          key={item.to}
+                          to={item.to}
+                          onClick={() => setMoreOpen(false)}
+                          className="flex items-center gap-3 min-h-touch text-sm font-medium text-fg"
+                        >
+                          <Icon className="w-[18px] h-[18px] text-fg-subtle shrink-0" />
+                          <span className="flex-1">{item.label}</span>
+                          <ChevronRight className="w-4 h-4 text-fg-subtle shrink-0" />
+                        </Link>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Kiinteä korkeus: sisältö keskittyy pystysuunnassa ja palkki pysyy
+              samana riippumatta labelien pituudesta. */}
+          <div className="grid grid-cols-5 h-16">
+            {bottomNav.map((item) => {
               const Icon = item.icon;
               return (
                 <NavLink
@@ -185,8 +270,29 @@ export function Layout({ children }: { children: ReactNode }) {
                 </NavLink>
               );
             })}
+
+            {/* Viides nappi: loput näkymät. Ei NavLink vaan nappi, koska tämä ei
+                vie mihinkään vaan avaa listan. */}
+            <button
+              onClick={() => setMoreOpen((v) => !v)}
+              aria-label={t.nav.more}
+              aria-expanded={moreOpen}
+              className={`flex flex-col items-center justify-center gap-1 text-2xs font-medium transition-colors ${
+                moreActive || moreOpen ? 'text-brand-ink' : 'text-fg-subtle'
+              }`}
+            >
+              <span
+                className={`flex items-center justify-center h-7 w-11 rounded-lg transition-colors ${
+                  moreActive || moreOpen ? 'bg-brand-soft' : ''
+                }`}
+              >
+                <MoreHorizontal className="w-[18px] h-[18px]" />
+              </span>
+              {t.nav.more}
+            </button>
           </div>
         </nav>
+
       </div>
     </div>
   );

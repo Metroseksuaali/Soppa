@@ -51,6 +51,17 @@ export function Modal({
   );
 }
 
+// Kirjaustyypin väri — yksi lähde, jotta sama kirjaustyyppi on samanvärinen
+// joka näkymässä. Väri kertoo mitä kirjaus tekee saldolle; ks. DESIGN.md
+// "Värin merkitys". Käyttäjä nyt: Kirjaa-sivun toimintovalitsin ja otsikko.
+export const movementStyle: Record<string, { bg: string; ink: string }> = {
+  lisays: { bg: 'bg-emerald-500/10', ink: 'text-emerald-700 dark:text-emerald-300' },
+  vienti: { bg: 'bg-sky-500/10', ink: 'text-sky-700 dark:text-sky-300' },
+  palautus: { bg: 'bg-indigo-500/10', ink: 'text-indigo-700 dark:text-indigo-300' },
+  kulutus: { bg: 'bg-rose-500/10', ink: 'text-rose-700 dark:text-rose-300' },
+  inventointi: { bg: 'bg-amber-500/10', ink: 'text-amber-700 dark:text-amber-300' },
+};
+
 export function CategoryChip({ category }: { category: string }) {
   const styles: Record<string, string> = {
     ruoka: 'bg-amber-500/10 text-amber-700 dark:text-amber-300',

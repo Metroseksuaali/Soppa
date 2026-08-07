@@ -50,6 +50,12 @@ export function barcodeCameraSupported(): boolean {
   return !!navigator.mediaDevices?.getUserMedia;
 }
 
+/** Skannausnapin tyyli kun se on hakukentän sisällä oikeassa laidassa. Kentän
+ *  pitää olla `relative`-säiliössä ja sillä `pr-11`, ettei teksti mene ikonin
+ *  alle. `h-full w-11` antaa koko 44px kosketusalan ilman kiinteitä mittoja. */
+export const SCAN_IN_FIELD =
+  'absolute right-0 top-0 h-full w-11 inline-flex items-center justify-center rounded-lg text-fg-muted hover:text-fg transition-colors';
+
 /** Skannausnappi, joka avaa lukijan. onDetect saa luetun koodin ja ikkuna sulkeutuu. */
 export function ScanButton({
   onDetect,

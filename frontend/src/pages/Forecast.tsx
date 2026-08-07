@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';
 import {
   api,
   Category,
@@ -77,10 +77,6 @@ export function ForecastPage() {
 
   return (
     <div className="space-y-4 md:max-w-3xl">
-      <Link to="/" className="inline-flex items-center gap-1 text-brand-ink text-sm font-medium">
-        <ArrowLeft className="w-4 h-4" />
-        {t.common.backHome}
-      </Link>
       <h1 className="text-xl font-bold">{t.forecast.title}</h1>
       <p className="text-sm text-fg-muted">{t.forecast.intro}</p>
 

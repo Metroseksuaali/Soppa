@@ -112,27 +112,14 @@ Alapalkissa on `pb-safe` (iOS:n kotipainikkeen alue) ja sisältöalueella `pb-24
 alapalkki ei peitä viimeistä riviä.
 
 **Peukalon ulottuvuus.** Puhelimessa sivun ylälaita on hankalin kohta yhdellä kädellä
-käytettäessä, joten toistuvat toiminnot kuuluvat alalaitaan. Etusivun pikatoiminnot
-**kelluvat mobiilissa heti alanavigaation päällä** (`fixed above-bottom-nav`), koska
-kirjaaminen on sovelluksen ydintoiminto eikä sitä pidä tarvita selata esiin. Työpöydällä
-palkki palaa normaaliin virtaan (`md:static`) väljempänä ruudukkona.
+käytettäessä, joten toistuvat toiminnot kuuluvat alalaitaan. Kirjaaminen tavoitetaan
+alapalkin **Kirjaa**-välilehdestä, ja itse sivu alkaa toiminnon valinnalla — siksi
+etusivulla ei ole erillisiä pikatoimintolaattoja. Yksi tapa valita kirjaustyyppi riittää;
+kaksi rinnakkaista tapaa teki navigaatiosta arvailua.
 
-Kelluvan palkin mitoitus:
-
-- Palkki on **yksi rivi** (`grid-cols-6`) ja laatat pienenevät mobiilissa
-  (`py-1.5 text-2xs`), jotta se peittää vain ~60px. Kahden rivin ruudukko veisi ~130px,
-  mikä on liikaa pienellä näytöllä.
-- `.above-bottom-nav` laskee sijainnin `--nav-h`:sta + `env(safe-area-inset-bottom)`.
-  `--nav-h` vastaa alapalkin ruudukon korkeutta ([Layout.tsx](frontend/src/components/Layout.tsx):
-  `h-16`) — **jos alapalkin korkeus muuttuu, muuta `--nav-h` samalla**, muuten palkki
-  jää alapalkin alle tai leijuu irti siitä.
-- Kelluva elementti on poissa normaalista asettelusta, joten sivun juuri lisää sen
-  korkeuden verran alapaddingia (`pb-20 md:pb-0`). Layoutin `main` hoitaa jo alapalkin
-  oman tilan (`pb-24`), joten sitä ei lasketa kahdesti.
-
-Jos joskus siirrät osion järjestystä `order`-luokilla kelluttamisen sijaan, säiliön pitää
-käyttää `flex flex-col gap-*` eikä `space-y-*`: `space-y` ripustaa marginaalit
-DOM-järjestykseen, joten `order` sekoittaa välit.
+Jos joskus siirrät osion järjestystä `order`-luokilla, säiliön pitää käyttää
+`flex flex-col gap-*` eikä `space-y-*`: `space-y` ripustaa marginaalit DOM-järjestykseen,
+joten `order` sekoittaa välit.
 
 ## Typografia
 
@@ -172,8 +159,9 @@ Määritelty [index.css](frontend/src/index.css):n `@layer components`-lohkossa.
 
 ## Värin merkitys
 
-Kirjaustyypin väri on sovittu (määritelty [Home.tsx](frontend/src/pages/Home.tsx):n
-`quickActions`-taulukossa) ja sen pitää olla sama kaikkialla:
+Kirjaustyypin väri on sovittu ja sen pitää olla sama kaikkialla. Yksi lähde on
+`movementStyle` [ui.tsx](frontend/src/components/ui.tsx):ssä (`bg` = sävypinta, `ink` =
+teksti/ikoni) — älä kirjoita näitä luokkia käsin uudelleen:
 
 | Tyyppi | Väri | Miksi |
 |--------|------|-------|
@@ -198,6 +186,12 @@ Valinta merkitään **täytetyllä pillerillä** (`bg-brand text-brand-fg`), ei 
 Kategoriavälilehdet istuvat `bg-surface-2`-kiskossa, ja sävytetty valinta hukkuu siihen
 kiskoon molemmissa teemoissa. `bg-brand-soft` on sävypinnaksi kunnossa vain neutraalia
 pintaa vasten, kuten sivupalkin navilinkeissä.
+
+**Poikkeus: kun valinnalla itsellään on merkitysväri.** Kirjaa-sivun toimintovalitsin
+käyttää valitulle napille kirjaustyypin omaa väriä (`movementStyle`) ja `border-current`-
+reunaa, ei violettia täyttöä. Muuten valittu toiminto (rose "Käytä") ja sen avaama
+valinta (violetti) näyttäisivät eri asioilta. Reunan leveys on sama valitussa ja
+valitsemattomassa (`border-2`), jotta valinta ei hyppää.
 
 ## Ikonit
 

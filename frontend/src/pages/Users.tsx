@@ -1,9 +1,8 @@
 import { useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
+import { Navigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, User } from '../api';
 import { useAuth } from '../auth';
-import { ArrowLeft } from 'lucide-react';
 import { Spinner, ErrorMsg, Modal } from '../components/ui';
 import { t } from '../i18n';
 
@@ -22,7 +21,6 @@ export function UsersPage() {
 
   return (
     <div className="space-y-4 md:max-w-2xl">
-      <Link to="/" className="inline-flex items-center gap-1 text-brand-ink text-sm font-medium"><ArrowLeft className="w-4 h-4" />{t.common.backHome}</Link>
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">{t.users.title}</h1>
         <button className="btn-primary py-2 px-3 text-sm" onClick={() => setShowCreate(true)}>

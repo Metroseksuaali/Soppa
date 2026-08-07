@@ -24,6 +24,13 @@ export const t = {
     locations: 'Sijainnit',
     events: 'Tapahtumat',
     users: 'Käyttäjät',
+    // Sivupalkin ryhmäotsikot. Ensimmäinen ryhmä (perusnavigaatio) on
+    // tarkoituksella nimetön — otsikko sille ei kertoisi mitään.
+    groupMonitoring: 'Seuranta',
+    groupManage: 'Hallinta',
+    // Mobiilin alapalkin viides nappi: avaa loput näkymät, jotka eivät mahdu
+    // palkkiin. "Valikko" eikä "Lisää", ettei sekoitu kirjaustyyppiin Lisää.
+    more: 'Valikko',
   },
 
   // Yläpalkki
@@ -38,7 +45,6 @@ export const t = {
   common: {
     back: 'Takaisin',
     close: 'Sulje',
-    backHome: 'Etusivu',
     edit: 'Muokkaa',
     save: 'Tallenna',
     saving: 'Tallennetaan…',
@@ -94,8 +100,6 @@ export const t = {
     activeEventTag: 'Aktiivinen tapahtuma',
     noEventNotice: 'Ei aktiivista tapahtumaa. Kirjaukset tallentuvat ilman tapahtumaleimaa.',
     setEvent: 'Aseta tapahtuma',
-    quickActions: 'Pikatoiminnot',
-    warehouse: 'Varasto',
     outOfStock: 'Loppu varastosta',
     locations: 'Sijainnit',
     events: 'Tapahtumat',
@@ -103,13 +107,6 @@ export const t = {
     importData: 'Historiatuonti',
     groups: 'Tuoteryhmät',
     users: 'Käyttäjät',
-    actions: {
-      lisays: 'Lisää',
-      vienti: 'Vie',
-      palautus: 'Palauta',
-      kulutus: 'Kuluta',
-      inventointi: 'Inventoi',
-    } as Record<string, string>,
   },
 
   // Inventaario-listaus
@@ -206,13 +203,31 @@ export const t = {
   // Kirjaa-näkymä
   log: {
     title: 'Kirjaa',
+    // Toimintojen nimet käskymuodossa (napit ja otsikko). Kirjaustyypin nimi
+    // substantiivina on t.movementTypes — sitä käytetään vahvistuksissa ja lokissa.
+    actions: {
+      lisays: 'Lisää',
+      vienti: 'Vie',
+      palautus: 'Palauta',
+      kulutus: 'Käytä',
+      inventointi: 'Inventoi',
+    } as Record<string, string>,
     done: (type: string, item: string) => `${type} kirjattu: ${item}`,
-    step1Item: '1. Tuote',
+    // Toiminto valitaan ensin ja se näkyy koko ajan — vaiheiden numerot ovat
+    // teksteissä, joten järjestystä ei voi vaihtaa koskematta näihin.
+    step1Action: '1. Toiminto',
+    step2Item: '2. Tuote',
     balance: (val: string) => `Saldo: ${val}`,
     change: 'Vaihda',
     noMatches: 'Ei osumia.',
     noReturnable: 'Ei palautuvia (vietäviä) tuotteita.',
-    step2Action: '2. Toiminto',
+    // Kerrotaan miksi lista on lyhyempi kuin inventaariossa.
+    onlyReturnableShown: 'Vie ja palauta koskevat vain palautuvia tuotteita, joten lista näyttää vain ne.',
+    // Kun valittu tuote ei kelpaa valitulle toiminnolle, sanotaan se — ennen
+    // tämä vaihtoi toiminnon lisäykseksi käyttäjän huomaamatta.
+    returnableOnlyBlocked: (action: string, item: string) =>
+      `${action} ei sovi tuotteelle ${item}, koska se on kuluva. Valitse palautuva tuote tai toinen toiminto.`,
+    returnableOnlyShort: 'Vain palautuville tuotteille',
     step3Counted: (unit: string) => `3. Laskettu määrä (${unit})`,
     currentBalance: (val: string) => `Nykysaldo: ${val}`,
     step3Quantity: (unit: string) => `3. Määrä (${unit})`,

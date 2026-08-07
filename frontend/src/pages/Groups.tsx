@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronRight } from 'lucide-react';
 import { api, GroupMember, GroupUnit, ItemGroup } from '../api';
 import { Spinner, ErrorMsg } from '../components/ui';
 import { fmtNum } from '../lib/format';
@@ -38,10 +38,6 @@ export function GroupsPage() {
 
   return (
     <div className="space-y-4 md:max-w-2xl">
-      <Link to="/" className="inline-flex items-center gap-1 text-brand-ink text-sm font-medium">
-        <ArrowLeft className="w-4 h-4" />
-        {t.common.backHome}
-      </Link>
       <h1 className="text-xl font-bold">{t.groups.title}</h1>
       <p className="text-sm text-fg-muted">{t.groups.intro}</p>
 
