@@ -48,25 +48,24 @@ aja tällöin `app`-palvelu suoraan (portti `8080`) tai käytä Caddyn `tls inte
 
 ## Kehitys
 
-Backend:
+Tarvitset paikallisen Postgresin ja juuren `.env`-tiedoston, jossa on ainakin
+`DATABASE_URL` (osoita `localhost`iin, ei `db`:hen) ja `JWT_SECRET`.
 
 ```bash
-cd backend
-npm install
-# tarvitset paikallisen Postgresin; aseta DATABASE_URL, JWT_SECRET, ADMIN_* ympäristöön
-npm run dev
+npm run install:all   # kerran: asentaa backendin ja frontendin riippuvuudet
+npm run dev           # käynnistää molemmat
 ```
 
-Frontend (eri terminaalissa):
+Avaa http://localhost:5173. Vite proxyttaa `/api` backendiin (`localhost:8080`), ja
+`Ctrl+C` sammuttaa molemmat. Käynnistin on [scripts/dev.mjs](scripts/dev.mjs).
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
+Huom: backendissä ei ole `dotenv`-riippuvuutta — se lukee pelkän `process.env`:n. Juuren
+`.env` päätyy sille vain tämän skriptin kautta (tai Docker Composesta). Jos ajat backendin
+käsin, aseta muuttujat itse kuoreen. Skripti asettaa lisäksi kehitykseen `NODE_ENV=development`
+ja `COOKIE_SECURE=false` (http-cookie), ellei niitä ole jo asetettu.
 
-Vite pyörii portissa 5173 ja proxyttaa `/api` backendiin (`localhost:8080`).
-Aseta backendin ympäristöön `COOKIE_SECURE=false` kehityksessä (http).
+Palvelut voi ajaa myös erikseen kahdessa terminaalissa: `cd backend && npm run dev` ja
+`cd frontend && npm run dev`.
 
 ## Ydinkäsitteet
 

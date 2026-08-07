@@ -27,6 +27,7 @@ mihin tapahtumaan), ja raportit ovat pelkkää lokin suodatusta.
 ## Repo-rakenne
 
 ```
+package.json               Vain juuren kehitysskriptit (dev / install:all / build), ei riippuvuuksia
 docker-compose.yml         Tuotantopino: db + app + caddy
 docker-compose.local.yml   Paikallistesti: julkaisee app-portin, ei Caddyä
 Caddyfile                  Reverse proxy + Let's Encrypt TLS
@@ -67,7 +68,7 @@ frontend/
                            Events, Reports, Forecast (kulutusennuste),
                            Import (historiatuonti), Groups (tuoteryhmät), Users
     lib/importParse.ts     Liitetyn taulukon jäsennys tuontiriveiksi (päivä, määrä, tuotenimi)
-scripts/                   backup.sh (pg_dump -> .sql.gz), restore.sh
+scripts/                   backup.sh (pg_dump -> .sql.gz), restore.sh, dev.mjs (aja molemmat)
 ```
 
 ## Domain-malli (lue tämä ennen kuin kosket movements-logiikkaan)
@@ -170,8 +171,13 @@ Käynnistys ajaa migraatiot + seedin automaattisesti. Kirjaudu `ADMIN_USERNAME`/
 docker compose -f docker-compose.yml -f docker-compose.local.yml up -d db app
 ```
 
-**Kehitys** (hot reload): `cd backend && npm run dev` sekä `cd frontend && npm run dev`
-(Vite portissa 5173 proxyttaa `/api` -> `localhost:8080`). Aseta backendille `COOKIE_SECURE=false`.
+**Kehitys** (hot reload): juuresta `npm run dev` käynnistää molemmat
+([scripts/dev.mjs](scripts/dev.mjs), nollariippuvuus). Vite portissa 5173 proxyttaa `/api` ->
+`localhost:8080`. Skripti lukee juuren `.env`:n ja välittää sen lapsiprosesseille — **backendissä
+itsessään ei ole `dotenv`ia**, joten käsin ajettaessa muuttujat on asetettava kuoreen. Kehityksen
+`DATABASE_URL` osoittaa `localhost`iin, ei Composen `db`-hostnameen (db-palvelu ei julkaise porttia).
+Skripti asettaa `NODE_ENV=development` + `COOKIE_SECURE=false`, ellei niitä ole jo annettu.
+Palvelut voi yhä ajaa erikseen: `cd backend && npm run dev`, `cd frontend && npm run dev`.
 
 ## Konventiot & sudenkuopat
 
