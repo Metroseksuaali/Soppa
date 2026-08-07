@@ -75,19 +75,21 @@ export function InventoryPage() {
       </div>
 
       {scanMsg && (
-        <div className="rounded-xl bg-amber-50 text-amber-800 px-4 py-3 text-sm">
+        <div className="rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-300 px-3 py-2 text-sm">
           {scanMsg.text}
           {scanMsg.hint && <span className="block text-xs mt-1">{scanMsg.hint}</span>}
         </div>
       )}
 
-      <div className="grid grid-cols-3 gap-1 bg-slate-200 rounded-xl p-1">
+      <div className="grid grid-cols-3 gap-1 bg-surface-2 rounded-xl p-1">
         {TABS.map((cat) => (
           <button
             key={cat}
             onClick={() => setParam('cat', cat)}
-            className={`py-2 rounded-lg text-sm font-semibold ${
-              tab === cat ? 'bg-white text-brand shadow-sm' : 'text-slate-500'
+            className={`py-2 min-h-touch rounded-lg text-sm font-semibold transition-colors ${
+              // Täytetty pilleri, ei sävypinta: sävy hukkuu yhtä lailla sävytettyyn
+              // kiskoon, eikä valittu välilehti erottunut riittävästi.
+              tab === cat ? 'bg-brand text-brand-fg' : 'text-fg-muted hover:text-fg'
             }`}
           >
             {t.categories[cat]}
@@ -99,7 +101,7 @@ export function InventoryPage() {
       {error && <ErrorMsg error={error} />}
 
       {data && data.length === 0 && (
-        <div className="text-center text-slate-400 py-10">{t.inventory.empty}</div>
+        <div className="text-center text-fg-subtle py-10">{t.inventory.empty}</div>
       )}
 
       <ul className="grid gap-2 sm:grid-cols-2">
@@ -112,13 +114,13 @@ export function InventoryPage() {
                 <div className="flex items-center gap-2 mt-1">
                   <CategoryChip category={item.category} />
                   {item.returnable ? (
-                    <span className="chip bg-teal-100 text-teal-800">{t.common.returnable}</span>
+                    <span className="chip bg-accent-soft text-accent-ink">{t.common.returnable}</span>
                   ) : (
-                    <span className="chip bg-slate-100 text-slate-600">{t.common.consumable}</span>
+                    <span className="chip bg-surface-2 text-fg-muted">{t.common.consumable}</span>
                   )}
                 </div>
               </div>
-              <div className={`text-right font-bold ${item.stock <= 0 ? 'text-red-600' : 'text-slate-800'}`}>
+              <div className={`text-right font-bold nums ${item.stock <= 0 ? 'text-red-600 dark:text-red-400' : 'text-fg'}`}>
                 {fmtQty(item.stock, item.unit, item.pack_size, item.pack_unit)}
               </div>
             </Link>
@@ -257,9 +259,9 @@ function CreateItemModal({
               </option>
             ))}
           </select>
-          <p className="text-xs text-slate-400 mt-1">{t.itemForm.groupHint}</p>
+          <p className="text-xs text-fg-subtle mt-1">{t.itemForm.groupHint}</p>
           {groupMismatch && (
-            <p className="text-xs text-amber-700 mt-1">
+            <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
               {t.itemForm.groupIncompatible(chosenGroup!.base_unit)}
             </p>
           )}

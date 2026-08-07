@@ -30,17 +30,21 @@ export function LoginPage() {
 
   return (
     <div className="min-h-full flex items-center justify-center p-4">
-      <form onSubmit={onSubmit} className="card w-full max-w-sm p-6 space-y-4">
+      <form onSubmit={onSubmit} className="card w-full max-w-sm p-5 space-y-3.5">
         <div className="text-center">
-          <div className="mx-auto mb-3 h-20 w-20 rounded-3xl bg-brand text-white flex items-center justify-center shadow-sm">
-            <PotLogo className="h-14 w-14" />
+          <div className="mx-auto mb-3 h-16 w-16 rounded-2xl bg-brand-gradient text-white flex items-center justify-center">
+            <PotLogo className="h-11 w-11" />
           </div>
-          <h1 className="text-3xl font-extrabold tracking-tight">{t.app.name}</h1>
-          <p className="text-sm text-slate-500">{t.app.tagline}</p>
-          <p className="text-xs text-slate-400 mt-1">{t.login.subtitle}</p>
+          <h1 className="text-3xl font-extrabold tracking-tight text-brand-gradient">{t.app.name}</h1>
+          <p className="text-sm text-fg-muted">{t.app.tagline}</p>
+          <p className="text-xs text-fg-subtle mt-0.5">{t.login.subtitle}</p>
         </div>
 
-        {error && <div className="rounded-xl bg-red-50 text-red-700 px-4 py-3 text-sm">{error}</div>}
+        {error && (
+          <div className="rounded-lg bg-red-500/10 border border-red-500/20 text-red-700 dark:text-red-300 px-3 py-2 text-sm">
+            {error}
+          </div>
+        )}
 
         <div>
           <label className="label">{t.login.username}</label>

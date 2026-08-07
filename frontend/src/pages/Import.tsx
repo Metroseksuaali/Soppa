@@ -73,16 +73,16 @@ export function ImportPage() {
 
   return (
     <div className="space-y-4 md:max-w-3xl">
-      <Link to="/" className="inline-flex items-center gap-1 text-brand text-sm font-medium">
+      <Link to="/" className="inline-flex items-center gap-1 text-brand-ink text-sm font-medium">
         <ArrowLeft className="w-4 h-4" />
         {t.common.backHome}
       </Link>
       <h1 className="text-xl font-bold">{t.importPage.title}</h1>
-      <p className="text-sm text-slate-500">{t.importPage.intro}</p>
+      <p className="text-sm text-fg-muted">{t.importPage.intro}</p>
 
       {/* 1. Tapahtuma */}
       <div className="card p-4 space-y-2">
-        <h2 className="font-semibold text-sm text-slate-500">{t.importPage.eventTitle}</h2>
+        <h2 className="font-semibold text-sm text-fg-muted">{t.importPage.eventTitle}</h2>
         <select
           className="input"
           value={eventId ?? ''}
@@ -96,18 +96,18 @@ export function ImportPage() {
             </option>
           ))}
         </select>
-        <p className="text-xs text-slate-400">{t.importPage.eventHint}</p>
+        <p className="text-xs text-fg-subtle">{t.importPage.eventHint}</p>
       </div>
 
       {/* 2. Rivit */}
       <div className="card p-4 space-y-2">
-        <h2 className="font-semibold text-sm text-slate-500">{t.importPage.dataTitle}</h2>
-        <p className="text-xs text-slate-400">{t.importPage.formatHint}</p>
-        <pre className="text-xs bg-slate-50 text-slate-600 rounded-lg p-3 overflow-x-auto whitespace-pre">
+        <h2 className="font-semibold text-sm text-fg-muted">{t.importPage.dataTitle}</h2>
+        <p className="text-xs text-fg-subtle">{t.importPage.formatHint}</p>
+        <pre className="text-xs bg-surface-2 text-fg-muted rounded-lg p-3 overflow-x-auto whitespace-pre">
           {t.importPage.example}
         </pre>
         <textarea
-          className="input font-mono text-sm"
+          className="input font-mono"
           rows={8}
           placeholder={t.importPage.placeholder}
           value={text}
@@ -122,7 +122,7 @@ export function ImportPage() {
           />
           <span>
             <span className="font-medium">{t.importPage.balanceLabel}</span>
-            <span className="block text-xs text-slate-400">{t.importPage.balanceHint}</span>
+            <span className="block text-xs text-fg-subtle">{t.importPage.balanceHint}</span>
           </span>
         </label>
       </div>
@@ -130,13 +130,13 @@ export function ImportPage() {
       {/* 3. Esikatselu */}
       {parsed.length > 0 && (
         <div className="card p-4 space-y-2">
-          <h2 className="font-semibold text-sm text-slate-500">{t.importPage.previewTitle}</h2>
+          <h2 className="font-semibold text-sm text-fg-muted">{t.importPage.previewTitle}</h2>
           <div className="flex flex-wrap gap-2 text-sm">
-            <span className="chip bg-emerald-100 text-emerald-800">
+            <span className="chip bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 nums">
               {t.importPage.okRows(okRows.length)}
             </span>
             {badRows.length > 0 && (
-              <span className="chip bg-amber-100 text-amber-800">
+              <span className="chip bg-amber-500/10 text-amber-700 dark:text-amber-300 nums">
                 {t.importPage.errorRows(badRows.length)}
               </span>
             )}
@@ -144,10 +144,10 @@ export function ImportPage() {
 
           {badRows.length > 0 && (
             <>
-              <p className="text-xs text-amber-700">{t.importPage.missingItemsHint}</p>
+              <p className="text-xs text-amber-700 dark:text-amber-300">{t.importPage.missingItemsHint}</p>
               <ul className="text-xs space-y-1">
                 {badRows.slice(0, 30).map((r) => (
-                  <li key={r.line} className="flex gap-2 text-amber-800">
+                  <li key={r.line} className="flex gap-2 text-amber-700 dark:text-amber-300">
                     <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
                     <span>
                       <span className="font-medium">{t.importPage.lineLabel(r.line)}</span>
@@ -168,7 +168,9 @@ export function ImportPage() {
           >
             {importMut.isPending ? t.importPage.importing : t.importPage.doImport(okRows.length)}
           </button>
-          {eventId === null && <p className="text-xs text-amber-700">{t.importPage.chooseEvent}</p>}
+          {eventId === null && (
+            <p className="text-xs text-amber-700 dark:text-amber-300">{t.importPage.chooseEvent}</p>
+          )}
         </div>
       )}
 
@@ -177,10 +179,10 @@ export function ImportPage() {
       {result && (
         <div className="card p-4 space-y-3">
           <div className="flex items-start gap-2">
-            <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+            <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
             <div>
               <div className="font-semibold">{t.importPage.doneTitle}</div>
-              <div className="text-sm text-slate-500">
+              <div className="text-sm text-fg-muted nums">
                 {t.importPage.doneBody(result.rows, result.event.name)}
                 {result.balancing > 0 && (
                   <span className="block">{t.importPage.doneBalancing(result.balancing)}</span>
@@ -206,24 +208,24 @@ export function ImportPage() {
 
       {/* Aiemmat tuonnit */}
       <div className="card p-4 space-y-2">
-        <h2 className="font-semibold text-sm text-slate-500">{t.importPage.batchesTitle}</h2>
+        <h2 className="font-semibold text-sm text-fg-muted">{t.importPage.batchesTitle}</h2>
         {!batches && <Spinner />}
-        {batches?.length === 0 && <div className="text-slate-400 text-sm">{t.importPage.noBatches}</div>}
-        <ul className="divide-y divide-slate-100">
+        {batches?.length === 0 && <div className="text-fg-subtle text-sm">{t.importPage.noBatches}</div>}
+        <ul className="divide-y divide-line">
           {batches?.map((b) => {
             const allVoided = b.rows_voided >= b.rows_total;
             return (
               <li key={b.batch} className="flex items-center justify-between gap-3 py-2">
                 <span className="min-w-0">
                   <span className="font-medium block truncate">{b.event_name ?? '—'}</span>
-                  <span className="text-xs text-slate-400">
+                  <span className="text-xs text-fg-subtle nums">
                     {t.importPage.batchRow(b.rows_total, fmtDate(b.first_date), fmtDate(b.last_date))}
                     {allVoided && ` · ${t.importPage.batchVoided}`}
                   </span>
                 </span>
                 {!allVoided && (
                   <button
-                    className="text-sm text-red-600 font-medium shrink-0"
+                    className="inline-flex items-center min-h-touch text-sm text-red-600 dark:text-red-400 font-medium shrink-0"
                     onClick={() => {
                       if (confirm(t.importPage.undoConfirm)) undoMut.mutate(b.batch);
                     }}
@@ -257,24 +259,24 @@ function PreviewTable({ rows }: { rows: ParsedRow[] }) {
     <div className="space-y-3 max-h-96 overflow-y-auto">
       {byDate.map(([date, dayRows]) => (
         <div key={date}>
-          <div className="text-sm font-semibold text-slate-700 mb-1">{fmtDate(date)}</div>
-          <ul className="divide-y divide-slate-100 text-sm">
+          <div className="text-sm font-semibold text-fg mb-1 nums">{fmtDate(date)}</div>
+          <ul className="divide-y divide-line text-sm">
             {dayRows.map((r) => (
               <li key={r.line} className="flex justify-between gap-3 py-1.5">
                 <span className="min-w-0 truncate">
                   {r.item!.name}
                   {r.type === 'lisays' && (
-                    <span className="chip bg-emerald-100 text-emerald-800 ml-2">
+                    <span className="chip bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 ml-2">
                       {t.movementTypes.lisays}
                     </span>
                   )}
                   {r.sponsored && (
-                    <span className="chip bg-violet-100 text-violet-800 ml-2">
+                    <span className="chip bg-violet-500/10 text-violet-700 dark:text-violet-300 ml-2">
                       {t.forecast.sponsoredTag}
                     </span>
                   )}
                 </span>
-                <span className="font-medium text-slate-700 shrink-0">
+                <span className="font-medium text-fg shrink-0 nums">
                   {fmtNum(r.quantity!)} {r.item!.unit}
                 </span>
               </li>

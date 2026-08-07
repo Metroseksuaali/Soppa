@@ -3,7 +3,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { api, EventRow } from '../api';
 import { useAuth } from '../auth';
-import { Home, Package, Pencil, BarChart3, TrendingUp, Upload, Layers, MapPin, Calendar, Users, Sun, Moon } from 'lucide-react';
+import { Home, Package, Pencil, BarChart3, TrendingUp, Upload, Layers, MapPin, Calendar, Users, Sun, Moon, LogOut } from 'lucide-react';
 import { t } from '../i18n';
 import { PotLogo } from './PotLogo';
 
@@ -24,6 +24,13 @@ const secondaryNav = [
   { to: '/tuonti', label: t.nav.importData, icon: Upload, end: false },
 ];
 
+// Selaimen osoitepalkin väri seuraa teemaa (arvot: index.css --c-surface / --c-bg).
+const THEME_COLOR = { light: '#ffffff', dark: '#0b0f14' };
+
+// Ikoninappi otsikkopalkeissa — huomaamaton, mutta 44px kosketusala.
+const iconBtn =
+  'inline-flex items-center justify-center h-touch w-touch rounded-lg text-fg-muted hover:bg-surface-2 hover:text-fg transition-colors';
+
 export function Layout({ children }: { children: ReactNode }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
@@ -32,6 +39,9 @@ export function Layout({ children }: { children: ReactNode }) {
   function toggleTheme() {
     const next = !document.documentElement.classList.contains('dark');
     document.documentElement.classList.toggle('dark', next);
+    document
+      .querySelector('meta[name="theme-color"]')
+      ?.setAttribute('content', next ? THEME_COLOR.dark : THEME_COLOR.light);
     try {
       localStorage.setItem('catering_theme', next ? 'dark' : 'light');
     } catch {
@@ -58,20 +68,20 @@ export function Layout({ children }: { children: ReactNode }) {
   ];
 
   return (
-    <div className="min-h-full bg-slate-100 md:flex">
+    <div className="min-h-full bg-app md:flex">
       {/* ===== Työpöydän sivupalkki (piilossa mobiilissa) ===== */}
-      <aside className="hidden md:flex md:w-64 md:shrink-0 md:flex-col md:sticky md:top-0 md:h-screen bg-brand text-white">
-        <div className="flex items-center gap-2.5 px-5 py-4">
-          <PotLogo className="h-9 w-9 shrink-0 text-white" />
+      <aside className="hidden md:flex md:w-60 md:shrink-0 md:flex-col md:sticky md:top-0 md:h-screen bg-surface border-r border-line">
+        <div className="flex items-center gap-2.5 px-4 h-14 shrink-0">
+          <span className="bg-brand-gradient text-white rounded-lg h-8 w-8 shrink-0 flex items-center justify-center">
+            <PotLogo className="h-6 w-6" />
+          </span>
           <div className="min-w-0">
-            <div className="font-bold leading-tight">{t.app.name}</div>
-            <div className="text-[11px] uppercase tracking-wide opacity-80 leading-tight truncate">
-              {t.app.tagline}
-            </div>
+            <div className="font-semibold text-sm leading-tight text-fg">{t.app.name}</div>
+            <div className="section-title truncate">{t.app.tagline}</div>
           </div>
         </div>
 
-        <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
+        <nav className="flex-1 overflow-y-auto px-2 py-2 space-y-0.5">
           {sidebarNav.map((item) => {
             const Icon = item.icon;
             return (
@@ -80,86 +90,73 @@ export function Layout({ children }: { children: ReactNode }) {
                 to={item.to}
                 end={item.end}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
-                    isActive ? 'bg-white/20 text-white' : 'text-white/80 hover:bg-white/10'
+                  `flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-sm font-medium transition-colors ${
+                    isActive
+                      ? 'bg-brand-soft text-brand-ink'
+                      : 'text-fg-muted hover:bg-surface-2 hover:text-fg'
                   }`
                 }
               >
-                <Icon className="w-5 h-5 shrink-0" />
+                <Icon className="w-[18px] h-[18px] shrink-0" />
                 {item.label}
               </NavLink>
             );
           })}
         </nav>
 
-        <div className="border-t border-white/15 px-4 py-4 space-y-3">
-          <div>
-            <div className="text-[11px] uppercase tracking-wide opacity-70">{t.header.activeEvent}</div>
-            <div className="font-semibold text-sm truncate">
+        <div className="border-t border-line px-3 py-3 space-y-2">
+          <div className="rounded-lg bg-surface-2 px-2.5 py-2">
+            <div className="section-title">{t.header.activeEvent}</div>
+            <div className={`text-sm font-semibold truncate ${activeEvent ? 'text-accent-ink' : 'text-fg-subtle'}`}>
               {activeEvent ? activeEvent.name : t.header.noActiveEvent}
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm opacity-90 truncate flex-1">{user?.display_name}</span>
-            <button
-              onClick={toggleTheme}
-              aria-label={t.header.toggleTheme}
-              title={t.header.toggleTheme}
-              className="bg-white/15 hover:bg-white/25 rounded-lg px-2.5 py-1.5 leading-none"
-            >
-              {dark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          <div className="flex items-center gap-1">
+            <span className="text-sm text-fg-muted truncate flex-1 px-1">{user?.display_name}</span>
+            <button onClick={toggleTheme} aria-label={t.header.toggleTheme} title={t.header.toggleTheme} className={iconBtn}>
+              {dark ? <Sun className="w-[18px] h-[18px]" /> : <Moon className="w-[18px] h-[18px]" />}
+            </button>
+            <button onClick={handleLogout} aria-label={t.header.logout} title={t.header.logout} className={iconBtn}>
+              <LogOut className="w-[18px] h-[18px]" />
             </button>
           </div>
-          <button
-            onClick={handleLogout}
-            className="w-full text-sm bg-white/15 hover:bg-white/25 rounded-lg px-3 py-2"
-          >
-            {t.header.logout}
-          </button>
         </div>
       </aside>
 
       {/* ===== Sisältösarake ===== */}
       <div className="flex flex-col min-h-full w-full max-w-2xl mx-auto md:max-w-none md:mx-0 md:min-w-0 md:flex-1">
         {/* Mobiilin yläpalkki (piilossa työpöydällä) */}
-        <header className="md:hidden sticky top-0 z-10 bg-brand text-white px-4 py-3 flex items-center justify-between shadow-md">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <PotLogo className="h-9 w-9 shrink-0 text-white" />
-            <div className="min-w-0">
-              <div className="text-[11px] uppercase tracking-wide opacity-80 leading-tight">
-                {t.app.name} · {t.header.activeEvent}
-              </div>
-              <div className="font-semibold truncate leading-tight">
-                {activeEvent ? activeEvent.name : t.header.noActiveEvent}
-              </div>
+        <header className="md:hidden sticky top-0 z-10 h-14 px-2 pl-3 flex items-center gap-2.5 bg-surface/85 backdrop-blur border-b border-line">
+          <span className="bg-brand-gradient text-white rounded-lg h-8 w-8 shrink-0 flex items-center justify-center">
+            <PotLogo className="h-6 w-6" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="font-semibold text-sm leading-tight text-fg">{t.app.name}</div>
+            <div
+              className={`text-2xs leading-tight truncate ${
+                activeEvent ? 'text-accent-ink font-medium' : 'text-fg-subtle'
+              }`}
+            >
+              {activeEvent ? activeEvent.name : t.header.noActiveEvent}
             </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            <span className="text-sm opacity-90 hidden sm:inline">{user?.display_name}</span>
-            <button
-              onClick={toggleTheme}
-              aria-label={t.header.toggleTheme}
-              title={t.header.toggleTheme}
-              className="bg-white/15 hover:bg-white/25 rounded-lg px-2.5 py-1.5 leading-none"
-            >
-              {dark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-            </button>
-            <button
-              onClick={handleLogout}
-              className="text-sm bg-white/15 hover:bg-white/25 rounded-lg px-3 py-1.5"
-            >
-              {t.header.logout}
-            </button>
-          </div>
+          <button onClick={toggleTheme} aria-label={t.header.toggleTheme} title={t.header.toggleTheme} className={iconBtn}>
+            {dark ? <Sun className="w-[18px] h-[18px]" /> : <Moon className="w-[18px] h-[18px]" />}
+          </button>
+          <button onClick={handleLogout} aria-label={t.header.logout} title={t.header.logout} className={iconBtn}>
+            <LogOut className="w-[18px] h-[18px]" />
+          </button>
         </header>
 
-        <main className="flex-1 p-4 pb-24 md:px-8 md:py-6 md:pb-8">
+        <main className="flex-1 px-3 py-4 pb-24 md:px-8 md:py-6 md:pb-8">
           <div className="mx-auto w-full md:max-w-5xl">{children}</div>
         </main>
 
         {/* Mobiilin alapalkki (piilossa työpöydällä) */}
-        <nav className="md:hidden fixed bottom-0 inset-x-0 z-10 bg-white border-t border-slate-200 max-w-2xl mx-auto">
-          <div className="grid grid-cols-4">
+        <nav className="md:hidden fixed bottom-0 inset-x-0 z-10 bg-surface/90 backdrop-blur border-t border-line max-w-2xl mx-auto pb-safe">
+          {/* Kiinteä korkeus, jotta etusivun kelluva pikatoimintopalkki osaa
+              asettua tarkasti tämän päälle (index.css: --nav-h). */}
+          <div className="grid grid-cols-4 h-16">
             {primaryNav.map((item) => {
               const Icon = item.icon;
               return (
@@ -168,13 +165,23 @@ export function Layout({ children }: { children: ReactNode }) {
                   to={item.to}
                   end={item.end}
                   className={({ isActive }) =>
-                    `flex flex-col items-center gap-0.5 py-2.5 text-xs ${
-                      isActive ? 'text-brand font-semibold' : 'text-slate-500'
+                    `flex flex-col items-center justify-center gap-1 text-2xs font-medium transition-colors ${
+                      isActive ? 'text-brand-ink' : 'text-fg-subtle'
                     }`
                   }
                 >
-                  <Icon className="w-5 h-5" />
-                  {item.label}
+                  {({ isActive }) => (
+                    <>
+                      <span
+                        className={`flex items-center justify-center h-7 w-11 rounded-lg transition-colors ${
+                          isActive ? 'bg-brand-soft' : ''
+                        }`}
+                      >
+                        <Icon className="w-[18px] h-[18px]" />
+                      </span>
+                      {item.label}
+                    </>
+                  )}
                 </NavLink>
               );
             })}

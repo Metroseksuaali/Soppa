@@ -22,7 +22,7 @@ export function UsersPage() {
 
   return (
     <div className="space-y-4 md:max-w-2xl">
-      <Link to="/" className="inline-flex items-center gap-1 text-brand text-sm font-medium"><ArrowLeft className="w-4 h-4" />{t.common.backHome}</Link>
+      <Link to="/" className="inline-flex items-center gap-1 text-brand-ink text-sm font-medium"><ArrowLeft className="w-4 h-4" />{t.common.backHome}</Link>
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold">{t.users.title}</h1>
         <button className="btn-primary py-2 px-3 text-sm" onClick={() => setShowCreate(true)}>
@@ -39,12 +39,14 @@ export function UsersPage() {
             <div>
               <div className="font-semibold">
                 {u.display_name}
-                {u.is_admin && <span className="chip bg-brand/10 text-brand ml-2">{t.users.adminTag}</span>}
-                {!u.active && <span className="chip bg-red-100 text-red-700 ml-2">{t.users.inactiveTag}</span>}
+                {u.is_admin && <span className="chip bg-brand/10 text-brand-ink ml-2">{t.users.adminTag}</span>}
+                {!u.active && (
+                  <span className="chip bg-red-500/10 text-red-700 dark:text-red-300 ml-2">{t.users.inactiveTag}</span>
+                )}
               </div>
-              <div className="text-sm text-slate-400">@{u.username}</div>
+              <div className="text-sm text-fg-subtle">@{u.username}</div>
             </div>
-            <button className="text-sm text-brand font-medium" onClick={() => setEdit(u)}>
+            <button className="text-sm text-brand-ink font-medium min-h-touch" onClick={() => setEdit(u)}>
               {t.common.edit}
             </button>
           </li>

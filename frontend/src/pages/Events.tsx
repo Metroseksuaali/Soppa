@@ -55,7 +55,7 @@ export function EventsPage() {
 
   return (
     <div className="space-y-4 md:max-w-2xl">
-      <Link to="/" className="inline-flex items-center gap-1 text-brand text-sm font-medium"><ArrowLeft className="w-4 h-4" />{t.common.backHome}</Link>
+      <Link to="/" className="inline-flex items-center gap-1 text-brand-ink text-sm font-medium"><ArrowLeft className="w-4 h-4" />{t.common.backHome}</Link>
       <h1 className="text-xl font-bold">{t.events.title}</h1>
 
       <div className="card p-4 space-y-2">
@@ -92,7 +92,7 @@ export function EventsPage() {
             {t.common.create}
           </button>
         </div>
-        <p className="text-xs text-slate-400">{t.events.metricsHint}</p>
+        <p className="text-xs text-fg-subtle">{t.events.metricsHint}</p>
       </div>
       {createMut.error && <ErrorMsg error={createMut.error} />}
 
@@ -106,14 +106,18 @@ export function EventsPage() {
               <div>
                 <div className="font-semibold flex items-center gap-2">
                   {e.name}
-                  {e.active && <span className="chip bg-emerald-100 text-emerald-800">{t.events.activeTag}</span>}
+                  {e.active && (
+                    <span className="chip bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">
+                      {t.events.activeTag}
+                    </span>
+                  )}
                 </div>
-                <div className="text-xs text-slate-400 mt-1">
+                <div className="text-xs text-fg-subtle mt-1 nums">
                   {e.starts_at ? t.events.startedAt(fmtDateTime(e.starts_at)) : t.events.notStarted}
                   {e.ends_at && ` · ${t.events.endedAt(fmtDateTime(e.ends_at))}`}
                 </div>
               </div>
-              <Link to={`/raportit?event=${e.id}`} className="text-sm text-brand font-medium">
+              <Link to={`/raportit?event=${e.id}`} className="text-sm text-brand-ink font-medium">
                 {t.events.report}
               </Link>
             </div>
@@ -166,18 +170,20 @@ function EventMetrics({ event, onSaved }: { event: EventRow; onSaved: () => void
       <div className="mt-2 flex items-center gap-2 flex-wrap text-xs">
         <span
           className={`chip inline-flex items-center gap-1 ${
-            event.org_count ? 'bg-sky-100 text-sky-800' : 'bg-amber-100 text-amber-800'
+            event.org_count
+              ? 'bg-sky-500/10 text-sky-700 dark:text-sky-300'
+              : 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
           }`}
         >
           <Users className="w-3.5 h-3.5" />
           {event.org_count ? t.events.orgCountShort(event.org_count) : t.events.orgCountMissing}
         </span>
-        <span className="chip inline-flex items-center gap-1 bg-slate-100 text-slate-700">
+        <span className="chip inline-flex items-center gap-1 bg-surface-2 text-fg">
           <CalendarRange className="w-3.5 h-3.5" />
           {t.events.daysShort(event.days_effective)}
           {event.days_manual === null && t.events.daysAuto}
         </span>
-        <button className="text-brand font-medium" onClick={() => setOpen(true)}>
+        <button className="text-brand-ink font-medium min-h-touch" onClick={() => setOpen(true)}>
           {t.events.editMetrics}
         </button>
       </div>

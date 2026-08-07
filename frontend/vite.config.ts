@@ -18,7 +18,9 @@ export default defineConfig({
         name: 'Soppa — Catering-varastonhallinta',
         short_name: 'Soppa',
         description: 'Soppa: catering-tiimin varastonhallinta',
-        theme_color: '#0f766e',
+        // Vastaa yläpalkin pintaa (index.css --c-surface), ei brand-väriä:
+        // asennetun sovelluksen otsikkopalkki jatkuu suoraan yläpalkkiin.
+        theme_color: '#ffffff',
         background_color: '#ffffff',
         display: 'standalone',
         start_url: '/',

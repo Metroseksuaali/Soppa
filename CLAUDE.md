@@ -2,7 +2,8 @@
 
 Ohjeistus Claude Codelle (ja kehittäjille) tässä repossa työskentelyyn. Lue tämä ennen
 muutosten tekemistä. Tarkka toteutusmäärittely on [SPEC.md](SPEC.md) — se on totuuden lähde
-domain-säännöille.
+domain-säännöille, ja [DESIGN.md](DESIGN.md) on totuuden lähde ulkoasulle (värit, tiheys,
+komponenttiluokat). Lue DESIGN.md ennen kuin kosket tyyleihin.
 
 ## Mikä tämä on
 
@@ -143,6 +144,16 @@ scripts/                   backup.sh (pg_dump -> .sql.gz), restore.sh
 Kategoriat (`t.categories`), kirjaustyypit (`t.movementTypes`) ja jaetut sanat (`t.common`)
 ovat myös siellä. Sovellus on yksikielinen (suomi); rakenne on valmis monistettavaksi jos
 tarvitaan lisää kieliä.
+
+## Ulkoasu
+
+Säännöt ovat [DESIGN.md](DESIGN.md):ssä; tässä vain tärkeimmät: värit tulevat **tokeneista**
+([index.css](frontend/src/index.css) + [tailwind.config.js](frontend/tailwind.config.js)),
+eli uusi koodi käyttää `bg-surface` / `text-fg` / `border-line` -tyyppisiä semanttisia
+luokkia — **ei** `slate-*`-luokkia, heksavärejä eikä `dark:`-variantteja (tumma teema on
+tokenien vaihto). Ilme on Assemblyn: violetti pääväri, teal tehoste, liukuväri vain
+tunnuspinnoilla. `index.css`:n lopussa on väliaikainen `!important`-yhteensopivuuslohko
+migroimattomille sivuille — sitä ei laajenneta.
 
 ## Ajaminen
 

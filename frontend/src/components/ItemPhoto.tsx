@@ -86,14 +86,14 @@ export function ItemPhoto({ itemId, itemName, hasPhoto, photoUpdatedAt }: Props)
           <img
             src={photoUrl(itemId, photoUpdatedAt)}
             alt={t.photo.alt(itemName)}
-            className="w-full max-h-72 object-contain rounded-xl bg-slate-100"
+            className="w-full max-h-72 object-contain rounded-xl bg-surface-2"
           />
         </button>
       ) : (
-        <div className="rounded-xl border-2 border-dashed border-slate-300 py-8 px-4 text-center">
-          <ImageOff className="w-8 h-8 mx-auto text-slate-400" />
-          <div className="text-sm text-slate-500 mt-2">{t.photo.none}</div>
-          <p className="text-xs text-slate-400 mt-1">{t.photo.hint}</p>
+        <div className="rounded-xl border-2 border-dashed border-line-strong py-8 px-4 text-center">
+          <ImageOff className="w-8 h-8 mx-auto text-fg-subtle" />
+          <div className="text-sm text-fg-muted mt-2">{t.photo.none}</div>
+          <p className="text-xs text-fg-subtle mt-1">{t.photo.hint}</p>
         </div>
       )}
 
@@ -128,7 +128,7 @@ export function ItemPhoto({ itemId, itemName, hasPhoto, photoUpdatedAt }: Props)
         </button>
         {hasPhoto && (
           <button
-            className="btn-secondary py-2 px-3 text-sm text-red-600"
+            className="btn-secondary py-2 px-3 text-sm text-red-600 dark:text-red-400"
             disabled={busy}
             onClick={() => {
               if (confirm(t.photo.removeConfirm)) remove.mutate();
@@ -142,11 +142,11 @@ export function ItemPhoto({ itemId, itemName, hasPhoto, photoUpdatedAt }: Props)
       </div>
 
       {phase && (
-        <div className="mt-2 text-sm text-slate-500">
+        <div className="mt-2 text-sm text-fg-muted">
           {phase === 'processing' ? t.photo.processing : t.photo.uploading}
         </div>
       )}
-      {saved && !busy && <div className="mt-2 text-sm text-teal-700">{saved}</div>}
+      {saved && !busy && <div className="mt-2 text-sm text-emerald-700 dark:text-emerald-300">{saved}</div>}
       {upload.error && <div className="mt-2"><ErrorMsg error={upload.error} /></div>}
       {remove.error && <div className="mt-2"><ErrorMsg error={remove.error} /></div>}
 
@@ -185,8 +185,8 @@ export function ItemThumb({
   const box = size === 'sm' ? 'h-9 w-9' : 'h-12 w-12';
   if (!item.has_photo) {
     return (
-      <div className={`${box} shrink-0 rounded-lg bg-slate-100 flex items-center justify-center`}>
-        <ImageOff className={size === 'sm' ? 'w-4 h-4 text-slate-400' : 'w-5 h-5 text-slate-400'} />
+      <div className={`${box} shrink-0 rounded-lg bg-surface-2 flex items-center justify-center`}>
+        <ImageOff className={size === 'sm' ? 'w-4 h-4 text-fg-subtle' : 'w-5 h-5 text-fg-subtle'} />
       </div>
     );
   }
@@ -195,7 +195,7 @@ export function ItemThumb({
       src={photoUrl(item.id, item.photo_updated_at, 'thumb')}
       alt=""
       loading="lazy"
-      className={`${box} shrink-0 rounded-lg object-cover bg-slate-100`}
+      className={`${box} shrink-0 rounded-lg object-cover bg-surface-2`}
     />
   );
 }

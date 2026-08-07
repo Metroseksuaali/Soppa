@@ -152,7 +152,7 @@ export function LogPage() {
       <h1 className="text-xl font-bold">{t.log.title}</h1>
 
       {done && (
-        <div className="rounded-xl bg-emerald-50 text-emerald-800 px-4 py-3 text-sm flex justify-between items-center">
+        <div className="rounded-lg bg-emerald-500/10 text-emerald-700 dark:text-emerald-300 px-3 py-2 text-sm flex justify-between items-center">
           <span>{done}</span>
           <button onClick={() => setDone(null)} className="font-bold">
             ×
@@ -168,14 +168,14 @@ export function LogPage() {
             <ItemThumb item={selectedItem} />
             <div className="flex-1 min-w-0">
               <div className="font-semibold">{selectedItem.name}</div>
-              <div className="text-sm text-slate-500">
+              <div className="text-sm text-fg-muted nums">
                 {t.log.balance(fmtQty(selectedItem.stock, selectedItem.unit, selectedItem.pack_size, selectedItem.pack_unit))}
                 {' · '}
                 {selectedItem.returnable ? t.common.returnable : t.common.consumable}
               </div>
             </div>
             <button
-              className="text-brand text-sm font-medium"
+              className="text-brand-ink text-sm font-medium"
               onClick={() => {
                 setItemId(null);
                 setScanMsg(null);
@@ -197,12 +197,12 @@ export function LogPage() {
             </div>
 
             {scanMsg && (
-              <div className="rounded-xl bg-amber-50 text-amber-800 px-3 py-2 text-sm mb-2">
+              <div className="rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-300 px-3 py-2 text-sm mb-2">
                 {scanMsg.text}
                 {scanMsg.hint && <span className="block text-xs mt-1">{scanMsg.hint}</span>}
               </div>
             )}
-            <div className="max-h-56 overflow-y-auto divide-y divide-slate-100">
+            <div className="max-h-56 overflow-y-auto divide-y divide-line">
               {filteredItems.map((i) => (
                 <button
                   key={i.id}
@@ -214,11 +214,11 @@ export function LogPage() {
                 >
                   <ItemThumb item={i} size="sm" />
                   <span className="font-medium flex-1 min-w-0 truncate">{i.name}</span>
-                  <span className="text-sm text-slate-500">{fmtNum(i.stock)} {i.unit}</span>
+                  <span className="text-sm text-fg-muted nums">{fmtNum(i.stock)} {i.unit}</span>
                 </button>
               ))}
               {filteredItems.length === 0 && (
-                <div className="text-slate-400 text-sm py-3">
+                <div className="text-fg-subtle text-sm py-3">
                   {actionCfg.returnableOnly && search === '' ? t.log.noReturnable : t.log.noMatches}
                 </div>
               )}
@@ -237,10 +237,10 @@ export function LogPage() {
                 <button
                   key={a.key}
                   onClick={() => setAction(a.key)}
-                  className={`py-2.5 rounded-xl text-sm font-semibold border ${
+                  className={`py-2.5 min-h-touch rounded-lg text-sm font-semibold border ${
                     action === a.key
-                      ? 'bg-brand text-white border-brand'
-                      : 'bg-white text-slate-600 border-slate-300'
+                      ? 'bg-brand text-brand-fg border-brand'
+                      : 'bg-surface text-fg-muted border-line-strong'
                   }`}
                 >
                   {a.label}
@@ -254,7 +254,7 @@ export function LogPage() {
             {action === 'inventointi' ? (
               <div>
                 <label className="label">{t.log.step3Counted(selectedItem.unit)}</label>
-                <div className="text-xs text-slate-400 mb-1">
+                <div className="text-xs text-fg-subtle mb-1 nums">
                   {t.log.currentBalance(`${fmtNum(selectedItem.stock)} ${selectedItem.unit}`)}
                 </div>
                 <input
@@ -313,7 +313,7 @@ export function LogPage() {
                 />
                 <span>
                   <span className="font-medium">{t.log.sponsored}</span>
-                  <span className="block text-xs text-slate-400">{t.log.sponsoredHint}</span>
+                  <span className="block text-xs text-fg-subtle">{t.log.sponsoredHint}</span>
                 </span>
               </label>
             )}

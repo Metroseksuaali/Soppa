@@ -91,7 +91,7 @@ export function LocationDetailPage() {
 
   return (
     <div className="space-y-4 md:max-w-2xl pb-20">
-      <Link to="/sijainnit" className="inline-flex items-center gap-1 text-brand text-sm font-medium">
+      <Link to="/sijainnit" className="inline-flex items-center gap-1 text-brand-ink text-sm font-medium">
         <ArrowLeft className="w-4 h-4" />
         {t.locations.title}
       </Link>
@@ -99,15 +99,19 @@ export function LocationDetailPage() {
       <div className="flex items-center gap-2 flex-wrap">
         <h1 className="text-xl font-bold">{location.name}</h1>
         {location.kind === 'varasto' && (
-          <span className="chip bg-slate-100 text-slate-600">{t.locations.warehouseTag}</span>
+          <span className="chip bg-surface-2 text-fg-muted">{t.locations.warehouseTag}</span>
         )}
-        {!location.active && <span className="chip bg-red-100 text-red-700">{t.locations.hiddenTag}</span>}
+        {!location.active && (
+          <span className="chip bg-red-500/10 text-red-700 dark:text-red-300">{t.locations.hiddenTag}</span>
+        )}
       </div>
 
       {result && (
         <div
-          className={`rounded-xl px-4 py-3 text-sm ${
-            result.failed ? 'bg-amber-50 text-amber-800' : 'bg-teal-50 text-teal-800'
+          className={`rounded-lg px-3 py-2 text-sm ${
+            result.failed
+              ? 'bg-amber-500/10 text-amber-700 dark:text-amber-300'
+              : 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300'
           }`}
         >
           {result.text}
@@ -121,7 +125,7 @@ export function LocationDetailPage() {
           <h2 className="font-semibold">{t.locationDetail.outNow}</h2>
           {out.length > 0 && (
             <button
-              className="text-sm text-brand font-medium"
+              className="text-sm text-brand-ink font-medium"
               onClick={() => (selCount === out.length ? setSel({}) : selectAll())}
             >
               {selCount === out.length ? t.locationDetail.clearSelection : t.locationDetail.selectAll}
@@ -130,16 +134,16 @@ export function LocationDetailPage() {
         </div>
 
         {out.length === 0 ? (
-          <div className="text-slate-400 text-sm py-2">{t.locationDetail.outEmpty}</div>
+          <div className="text-fg-subtle text-sm py-2">{t.locationDetail.outEmpty}</div>
         ) : (
           <>
-            <p className="text-xs text-slate-500 mb-3">{t.locationDetail.returnHint}</p>
+            <p className="text-xs text-fg-muted mb-3">{t.locationDetail.returnHint}</p>
             {groupByCategory(out).map(([category, rows]) => (
               <div key={category} className="mb-3 last:mb-0">
-                <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-1">
+                <div className="section-title mb-1">
                   {t.categories[category]}
                 </div>
-                <ul className="divide-y divide-slate-100">
+                <ul className="divide-y divide-line">
                   {rows.map((row) => {
                     const checked = row.item_id in sel;
                     return (
@@ -164,7 +168,7 @@ export function LocationDetailPage() {
                             />
                             <div className="min-w-0">
                               <div className="font-medium text-sm truncate">{row.name}</div>
-                              <div className="text-xs text-slate-500">
+                              <div className="text-xs text-fg-muted nums">
                                 {fmtQty(row.qty, row.unit, row.pack_size, row.pack_unit)}
                               </div>
                             </div>
@@ -172,12 +176,12 @@ export function LocationDetailPage() {
                           {checked && (
                             <div className="flex items-center gap-1 shrink-0">
                               <input
-                                className="input w-20 px-2 py-1.5 text-sm text-right"
+                                className="input w-24 px-2 py-1.5 text-right nums"
                                 inputMode="decimal"
                                 value={sel[row.item_id]}
                                 onChange={(e) => setSel((prev) => ({ ...prev, [row.item_id]: e.target.value }))}
                               />
-                              <span className="text-xs text-slate-500 w-8">{row.unit}</span>
+                              <span className="text-xs text-fg-muted w-8">{row.unit}</span>
                             </div>
                           )}
                         </div>
@@ -194,22 +198,22 @@ export function LocationDetailPage() {
       {/* ===== Kulutettu täällä (informatiivinen, ei vaikuta palautukseen) ===== */}
       <div className="card p-4">
         <h2 className="font-semibold">{t.locationDetail.consumedHere}</h2>
-        <p className="text-xs text-slate-500 mb-2">
+        <p className="text-xs text-fg-muted mb-2">
           {data.consumed_event
             ? t.locationDetail.consumedInEvent(data.consumed_event.name)
             : t.locationDetail.consumedAllTime}
         </p>
         {consumed.length === 0 ? (
-          <div className="text-slate-400 text-sm">{t.locationDetail.consumedEmpty}</div>
+          <div className="text-fg-subtle text-sm">{t.locationDetail.consumedEmpty}</div>
         ) : (
-          <ul className="divide-y divide-slate-100">
+          <ul className="divide-y divide-line">
             {consumed.map((row) => (
               <li key={row.item_id} className="flex items-center justify-between gap-2 py-2 text-sm">
                 <div className="flex items-center gap-2 min-w-0">
                   <CategoryChip category={row.category} />
                   <span className="truncate">{row.name}</span>
                 </div>
-                <span className="font-semibold shrink-0">
+                <span className="font-semibold shrink-0 nums">
                   {fmtQty(row.qty, row.unit, row.pack_size, row.pack_unit)}
                 </span>
               </li>
@@ -220,10 +224,10 @@ export function LocationDetailPage() {
 
       {/* ===== Kelluva palautusnappi (näkyy vasta kun jotain on rastittu) ===== */}
       {selCount > 0 && (
-        <div className="fixed bottom-0 inset-x-0 z-20 px-3 pt-3 pb-[4.5rem] md:pb-3 bg-white border-t border-slate-200 shadow-[0_-4px_12px_rgba(0,0,0,0.06)]">
+        <div className="fixed bottom-0 inset-x-0 z-20 px-3 pt-3 pb-[4.5rem] md:pb-3 bg-surface border-t border-line">
           <div className="mx-auto w-full max-w-2xl">
             <button
-              className="btn-primary w-full shadow-lg"
+              className="btn-primary w-full"
               disabled={returnMut.isPending}
               onClick={() => returnMut.mutate()}
             >

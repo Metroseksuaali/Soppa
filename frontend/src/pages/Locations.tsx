@@ -30,7 +30,7 @@ export function LocationsPage() {
 
   return (
     <div className="space-y-4 md:max-w-2xl">
-      <Link to="/" className="inline-flex items-center gap-1 text-brand text-sm font-medium"><ArrowLeft className="w-4 h-4" />{t.common.backHome}</Link>
+      <Link to="/" className="inline-flex items-center gap-1 text-brand-ink text-sm font-medium"><ArrowLeft className="w-4 h-4" />{t.common.backHome}</Link>
       <h1 className="text-xl font-bold">{t.locations.title}</h1>
 
       <div className="card p-4 flex gap-2">
@@ -53,7 +53,7 @@ export function LocationsPage() {
       {isLoading && <Spinner />}
       {error && <ErrorMsg error={error} />}
 
-      {!!data?.length && <p className="text-xs text-slate-500">{t.locations.listHint}</p>}
+      {!!data?.length && <p className="text-xs text-fg-muted">{t.locations.listHint}</p>}
 
       <ul className="space-y-2">
         {data?.map((l) => (
@@ -63,18 +63,23 @@ export function LocationsPage() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-medium">{l.name}</span>
                   {l.kind === 'varasto' && (
-                    <span className="chip bg-slate-100 text-slate-600">{t.locations.warehouseTag}</span>
+                    <span className="chip bg-surface-2 text-fg-muted">{t.locations.warehouseTag}</span>
                   )}
-                  {!l.active && <span className="chip bg-red-100 text-red-700">{t.locations.hiddenTag}</span>}
+                  {!l.active && (
+                    <span className="chip bg-red-500/10 text-red-700 dark:text-red-300">{t.locations.hiddenTag}</span>
+                  )}
                 </div>
-                <div className="text-xs text-slate-500 mt-0.5">
+                <div className="text-xs text-fg-muted mt-0.5">
                   {l.items_out ? t.locations.itemsOut(l.items_out) : t.locations.nothingOut}
                 </div>
               </div>
-              <ChevronRight className="w-5 h-5 text-slate-400 shrink-0 ml-auto" />
+              <ChevronRight className="w-5 h-5 text-fg-subtle shrink-0 ml-auto" />
             </Link>
             {l.kind !== 'varasto' && (
-              <button className="text-sm text-brand font-medium shrink-0" onClick={() => toggleMut.mutate(l)}>
+              <button
+                className="text-sm text-brand-ink font-medium shrink-0 min-h-touch"
+                onClick={() => toggleMut.mutate(l)}
+              >
                 {l.active ? t.locations.hide : t.locations.show}
               </button>
             )}

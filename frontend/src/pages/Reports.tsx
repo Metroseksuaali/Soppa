@@ -97,7 +97,7 @@ export function ReportsPage() {
         </select>
       </div>
 
-      {eventId === null && <div className="text-slate-400 text-center py-8">{t.reports.choosePrompt}</div>}
+      {eventId === null && <div className="text-fg-subtle text-center py-8">{t.reports.choosePrompt}</div>}
       {isLoading && <Spinner />}
       {error && <ErrorMsg error={error} />}
 
@@ -112,11 +112,11 @@ export function ReportsPage() {
           </div>
 
           <div className="card p-4">
-            <h3 className="font-semibold mb-3 text-sm text-slate-500">{t.reports.perItem}</h3>
-            {report.items.length === 0 && <div className="text-slate-400 text-sm">{t.reports.noMovements}</div>}
+            <h3 className="font-semibold mb-3 text-sm text-fg-muted">{t.reports.perItem}</h3>
+            {report.items.length === 0 && <div className="text-fg-subtle text-sm">{t.reports.noMovements}</div>}
             <div className="space-y-3">
               {report.items.map((it) => (
-                <div key={it.item_id} className="border-b border-slate-100 pb-3 last:border-0 last:pb-0">
+                <div key={it.item_id} className="border-b border-line pb-3 last:border-0 last:pb-0">
                   <div className="font-medium">{it.name}</div>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-x-4 gap-y-1 mt-1 text-sm">
                     <Stat label={t.reports.added} value={fmtQty(it.added, it.unit, it.pack_size, it.pack_unit)} />
@@ -137,16 +137,16 @@ export function ReportsPage() {
 
           {report.by_day && report.by_day.length > 0 && (
             <div className="card p-4">
-              <h3 className="font-semibold mb-3 text-sm text-slate-500">{t.reports.perDay}</h3>
+              <h3 className="font-semibold mb-3 text-sm text-fg-muted">{t.reports.perDay}</h3>
               <div className="space-y-4">
                 {groupByDay(report.by_day).map(([pvm, rows]) => (
                   <div key={pvm}>
-                    <div className="text-sm font-semibold text-slate-700 mb-1">{fmtDate(pvm)}</div>
-                    <ul className="divide-y divide-slate-100">
+                    <div className="text-sm font-semibold text-fg mb-1 nums">{fmtDate(pvm)}</div>
+                    <ul className="divide-y divide-line">
                       {rows.map((d) => (
                         <li key={d.item_id} className="flex justify-between py-1.5 text-sm">
                           <span>{d.name}</span>
-                          <span className="font-medium">
+                          <span className="font-medium nums">
                             {fmtQty(d.maara_unit, d.unit, d.pack_size, d.pack_unit)}
                           </span>
                         </li>
@@ -166,8 +166,8 @@ export function ReportsPage() {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <span className="text-slate-400">{label}: </span>
-      <span className="font-medium text-slate-700">{value}</span>
+      <span className="text-fg-subtle">{label}: </span>
+      <span className="font-medium text-fg nums">{value}</span>
     </div>
   );
 }

@@ -77,16 +77,16 @@ export function ForecastPage() {
 
   return (
     <div className="space-y-4 md:max-w-3xl">
-      <Link to="/" className="inline-flex items-center gap-1 text-brand text-sm font-medium">
+      <Link to="/" className="inline-flex items-center gap-1 text-brand-ink text-sm font-medium">
         <ArrowLeft className="w-4 h-4" />
         {t.common.backHome}
       </Link>
       <h1 className="text-xl font-bold">{t.forecast.title}</h1>
-      <p className="text-sm text-slate-500">{t.forecast.intro}</p>
+      <p className="text-sm text-fg-muted">{t.forecast.intro}</p>
 
       {/* 1. Suunniteltu tapahtuma */}
       <div className="card p-4 space-y-3">
-        <h2 className="font-semibold text-sm text-slate-500">{t.forecast.planTitle}</h2>
+        <h2 className="font-semibold text-sm text-fg-muted">{t.forecast.planTitle}</h2>
         <div className="flex gap-2">
           <label className="flex-1">
             <span className="label">{t.forecast.orgCount}</span>
@@ -130,7 +130,7 @@ export function ForecastPage() {
 
       {/* 2. Laskentatapa */}
       <div className="card p-4 space-y-2">
-        <h2 className="font-semibold text-sm text-slate-500">{t.forecast.basisTitle}</h2>
+        <h2 className="font-semibold text-sm text-fg-muted">{t.forecast.basisTitle}</h2>
         <div className="grid grid-cols-2 gap-2">
           <BasisButton
             active={basis === 'per_org'}
@@ -143,7 +143,7 @@ export function ForecastPage() {
             onClick={() => setBasis('per_org_day')}
           />
         </div>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-fg-subtle">
           {basis === 'per_org' ? t.forecast.basisPerOrgHint : t.forecast.basisPerOrgDayHint}
         </p>
       </div>
@@ -151,21 +151,21 @@ export function ForecastPage() {
       {/* 3. Vertailutapahtumat */}
       <div className="card p-4 space-y-2">
         <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-sm text-slate-500">{t.forecast.eventsTitle}</h2>
+          <h2 className="font-semibold text-sm text-fg-muted">{t.forecast.eventsTitle}</h2>
           <div className="flex gap-3 text-sm">
             <button
-              className="text-brand font-medium"
+              className="text-brand-ink font-medium"
               onClick={() => setSelected(new Set((events ?? []).map((e) => e.id)))}
             >
               {t.forecast.selectAll}
             </button>
-            <button className="text-slate-500 font-medium" onClick={() => setSelected(new Set())}>
+            <button className="text-fg-muted font-medium" onClick={() => setSelected(new Set())}>
               {t.forecast.selectNone}
             </button>
           </div>
         </div>
-        <p className="text-xs text-slate-400">{t.forecast.eventsHint}</p>
-        <ul className="divide-y divide-slate-100">
+        <p className="text-xs text-fg-subtle">{t.forecast.eventsHint}</p>
+        <ul className="divide-y divide-line">
           {events?.map((e) => (
             <li key={e.id}>
               <label className="flex items-center gap-3 py-2 cursor-pointer">
@@ -177,7 +177,7 @@ export function ForecastPage() {
                 />
                 <span className="flex-1 min-w-0">
                   <span className="font-medium block truncate">{e.name}</span>
-                  <span className="text-xs text-slate-400">
+                  <span className="text-xs text-fg-subtle">
                     {e.org_count
                       ? `${t.events.orgCountShort(e.org_count)} · ${t.events.daysShort(e.days_effective)}`
                       : t.forecast.noOrgCount}
@@ -192,8 +192,8 @@ export function ForecastPage() {
         <button className="btn-primary w-full" disabled={!canCalculate || isFetching} onClick={calculate}>
           {isFetching ? t.forecast.calculating : t.forecast.calculate}
         </button>
-        {selected.size === 0 && <p className="text-xs text-amber-700">{t.forecast.needEvents}</p>}
-        {!(orgNum > 0) && <p className="text-xs text-amber-700">{t.forecast.needOrgCount}</p>}
+        {selected.size === 0 && <p className="text-xs text-amber-700 dark:text-amber-300">{t.forecast.needEvents}</p>}
+        {!(orgNum > 0) && <p className="text-xs text-amber-700 dark:text-amber-300">{t.forecast.needOrgCount}</p>}
       </div>
 
       {error && <ErrorMsg error={error} />}
@@ -220,10 +220,10 @@ function BasisButton({
   return (
     <button
       onClick={onClick}
-      className={`rounded-xl px-3 py-2.5 text-sm font-semibold border transition ${
+      className={`rounded-lg px-3 py-2.5 text-sm font-semibold border transition ${
         active
-          ? 'bg-brand text-white border-brand'
-          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+          ? 'bg-brand text-brand-fg border-brand'
+          : 'bg-surface text-fg-muted border-line hover:bg-surface-2'
       }`}
     >
       {label}
@@ -248,28 +248,28 @@ function ForecastResult({
   return (
     <div className="space-y-3">
       {skipped.length > 0 && (
-        <div className="rounded-xl bg-amber-50 text-amber-800 px-4 py-3 text-sm">
+        <div className="rounded-lg bg-amber-500/10 text-amber-700 dark:text-amber-300 px-3 py-2 text-sm">
           {t.forecast.skippedNotice(skipped.map((s) => s.name).join(', '))}
         </div>
       )}
 
       <div className="card p-4">
         <div className="flex items-center justify-between gap-2 mb-1">
-          <h2 className="font-semibold text-sm text-slate-500">{t.forecast.resultTitle}</h2>
+          <h2 className="font-semibold text-sm text-fg-muted">{t.forecast.resultTitle}</h2>
           <div className="flex gap-2 text-xs">
             <ScopeButton active={level === 'group'} label={t.forecast.levelGroup} onClick={() => onLevel('group')} />
             <ScopeButton active={level === 'item'} label={t.forecast.levelItem} onClick={() => onLevel('item')} />
           </div>
         </div>
-        <p className="text-xs text-slate-400 mb-1">{t.forecast.levelHint}</p>
+        <p className="text-xs text-fg-subtle mb-1">{t.forecast.levelHint}</p>
         {/* Sponsoriselite näkyy vain kun sponsoridataa on — muuten se olisi turhaa kohinaa. */}
         {(report.items.some((i) => i.sponsored_events > 0) ||
           report.groups.some((g) => g.sponsored_events > 0)) && (
-          <p className="text-xs text-slate-400 mb-3">{t.forecast.sponsoredHint}</p>
+          <p className="text-xs text-fg-subtle mb-3">{t.forecast.sponsoredHint}</p>
         )}
 
         {report.items.length === 0 ? (
-          <div className="text-slate-400 text-sm">{t.forecast.noData}</div>
+          <div className="text-fg-subtle text-sm">{t.forecast.noData}</div>
         ) : level === 'item' ? (
           <div className="space-y-4">
             {report.items.map((it) => (
@@ -279,7 +279,7 @@ function ForecastResult({
         ) : (
           <div className="space-y-4">
             {report.groups.length === 0 && (
-              <div className="text-sm text-amber-700">
+              <div className="text-sm text-amber-700 dark:text-amber-300">
                 {t.forecast.noGroups}{' '}
                 <Link to="/tuoteryhmat" className="underline font-medium">
                   {t.forecast.manageGroups}
@@ -295,9 +295,9 @@ function ForecastResult({
               />
             ))}
             {ungrouped.length > 0 && (
-              <div className="pt-2 border-t border-slate-100">
-                <div className="text-sm font-semibold text-slate-500">{t.forecast.ungrouped}</div>
-                <p className="text-xs text-slate-400 mb-3">{t.forecast.ungroupedHint}</p>
+              <div className="pt-2 border-t border-line">
+                <div className="text-sm font-semibold text-fg-muted">{t.forecast.ungrouped}</div>
+                <p className="text-xs text-fg-subtle mb-3">{t.forecast.ungroupedHint}</p>
                 <div className="space-y-4">
                   {ungrouped.map((it) => (
                     <ForecastRow key={it.item_id} item={it} basis={basis} />
@@ -331,24 +331,24 @@ function GroupRow({
   const u = group.base_unit;
 
   return (
-    <div className="border-b border-slate-100 pb-3 last:border-0 last:pb-0">
+    <div className="border-b border-line pb-3 last:border-0 last:pb-0">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="font-medium truncate">{group.name}</div>
-          <div className="text-xs text-slate-400">
+          <div className="text-xs text-fg-subtle">
             {t.forecast.groupMembers(members.length)} · {fmtNum(rate)} {u} {per}
           </div>
         </div>
         <div className="text-right shrink-0">
           {toBuy > 0 ? (
             <>
-              <div className="text-[11px] uppercase tracking-wide text-slate-400">{t.forecast.toBuy}</div>
-              <div className="font-bold text-brand">
+              <div className="text-[11px] uppercase tracking-wide text-fg-subtle">{t.forecast.toBuy}</div>
+              <div className="font-bold text-brand-ink nums">
                 {fmtNum(toBuy)} {u}
               </div>
             </>
           ) : (
-            <div className="chip bg-emerald-100 text-emerald-800">{t.forecast.enough}</div>
+            <div className="chip bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">{t.forecast.enough}</div>
           )}
         </div>
       </div>
@@ -358,28 +358,28 @@ function GroupRow({
         <Stat label={t.forecast.stockNow} value={`${fmtNum(group.stock_now)} ${u}`} />
       </div>
 
-      <div className="mt-1.5 text-xs text-slate-400">
+      <div className="mt-1.5 text-xs text-fg-subtle">
         {t.forecast.confidence(group.events_used, group.events_total)}
         {group.sponsored_events > 0 &&
           ` · ${t.forecast.sponsoredLine(`${fmtNum(group.sponsored_estimate)} ${u}`, group.sponsored_events)}`}
       </div>
 
       {group.incompatible_items.length > 0 && (
-        <div className="mt-1 text-xs text-amber-700 flex items-start gap-1">
+        <div className="mt-1 text-xs text-amber-700 dark:text-amber-300 flex items-start gap-1">
           <AlertTriangle className="w-3.5 h-3.5 shrink-0 mt-0.5" />
           {t.forecast.incompatible(group.incompatible_items.map((i) => i.name).join(', '))}
         </div>
       )}
 
       <button
-        className="mt-1.5 text-xs text-brand font-medium inline-flex items-center gap-1"
+        className="mt-1.5 text-xs text-brand-ink font-medium inline-flex items-center gap-1"
         onClick={() => setOpen(!open)}
       >
         {open ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
         {open ? t.forecast.hideHistory : t.forecast.showHistory}
       </button>
       {open && (
-        <div className="mt-2 space-y-4 pl-3 border-l-2 border-slate-100">
+        <div className="mt-2 space-y-4 pl-3 border-l-2 border-line">
           {members.map((m) => (
             <ForecastRow key={m.item_id} item={m} basis={basis} />
           ))}
@@ -404,29 +404,29 @@ function ForecastRow({ item, basis }: { item: ForecastItem; basis: ForecastBasis
   const wideSpread = !single && rateMin > 0 && rateMax > rateMin * 2;
 
   return (
-    <div className="border-b border-slate-100 pb-3 last:border-0 last:pb-0">
+    <div className="border-b border-line pb-3 last:border-0 last:pb-0">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="font-medium truncate">
             {item.name}
             {item.archived && (
-              <span className="chip bg-slate-100 text-slate-600 ml-2">{t.forecast.archivedTag}</span>
+              <span className="chip bg-surface-2 text-fg-muted ml-2">{t.forecast.archivedTag}</span>
             )}
           </div>
-          <div className="text-xs text-slate-400">
+          <div className="text-xs text-fg-subtle">
             {t.categories[item.category] ?? item.category} · {fmtNum(rate)} {item.unit} {per}
           </div>
         </div>
         <div className="text-right shrink-0">
           {toBuy > 0 ? (
             <>
-              <div className="text-[11px] uppercase tracking-wide text-slate-400">{t.forecast.toBuy}</div>
-              <div className="font-bold text-brand">
+              <div className="text-[11px] uppercase tracking-wide text-fg-subtle">{t.forecast.toBuy}</div>
+              <div className="font-bold text-brand-ink nums">
                 {fmtQty(toBuy, item.unit, item.pack_size, item.pack_unit)}
               </div>
             </>
           ) : (
-            <div className="chip bg-emerald-100 text-emerald-800">{t.forecast.enough}</div>
+            <div className="chip bg-emerald-500/10 text-emerald-700 dark:text-emerald-300">{t.forecast.enough}</div>
           )}
         </div>
       </div>
@@ -439,7 +439,7 @@ function ForecastRow({ item, basis }: { item: ForecastItem; basis: ForecastBasis
         />
       </div>
 
-      <div className="mt-1.5 text-xs text-slate-400">
+      <div className="mt-1.5 text-xs text-fg-subtle">
         {t.forecast.confidence(item.events_used, item.events_total)}
         {item.events_used > 1 &&
           ` · ${t.forecast.spread(fmtNum(rateMin), fmtNum(rateMax), item.unit, per)}`}
@@ -450,32 +450,32 @@ function ForecastRow({ item, basis }: { item: ForecastItem; basis: ForecastBasis
           )}`}
       </div>
       {(single || wideSpread) && (
-        <div className="mt-1 text-xs text-amber-700 flex items-center gap-1">
+        <div className="mt-1 text-xs text-amber-700 dark:text-amber-300 flex items-center gap-1">
           <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
           {single ? t.forecast.lowConfidence : t.forecast.highSpread}
         </div>
       )}
 
       <button
-        className="mt-1.5 text-xs text-brand font-medium inline-flex items-center gap-1"
+        className="mt-1.5 text-xs text-brand-ink font-medium inline-flex items-center gap-1"
         onClick={() => setOpen(!open)}
       >
         {open ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
         {open ? t.forecast.hideHistory : t.forecast.showHistory}
       </button>
       {open && (
-        <ul className="mt-1.5 divide-y divide-slate-100 text-xs">
+        <ul className="mt-1.5 divide-y divide-line text-xs">
           {item.history.map((h) => (
             <li key={h.event_id} className="flex justify-between gap-3 py-1.5">
               <span className="min-w-0">
-                <span className="font-medium text-slate-600 block truncate">{h.event_name}</span>
-                <span className="text-slate-400">{t.forecast.historyRow(h.org_count, h.days)}</span>
+                <span className="font-medium text-fg-muted block truncate">{h.event_name}</span>
+                <span className="text-fg-subtle">{t.forecast.historyRow(h.org_count, h.days)}</span>
               </span>
-              <span className="text-right shrink-0">
-                <span className="font-medium text-slate-700 block">
+              <span className="text-right shrink-0 nums">
+                <span className="font-medium text-fg block">
                   {fmtQty(h.consumed, item.unit, item.pack_size, item.pack_unit)}
                 </span>
-                <span className="text-slate-400">
+                <span className="text-fg-subtle">
                   {fmtNum(basis === 'per_org' ? h.per_org : h.per_org_day)} {item.unit} {per}
                 </span>
               </span>
@@ -516,7 +516,7 @@ function StatsCard({ eventIds, category }: { eventIds: number[]; category?: Cate
   return (
     <div className="card p-4 space-y-2">
       <div className="flex items-center justify-between gap-2">
-        <h2 className="font-semibold text-sm text-slate-500">{t.forecast.statsTitle}</h2>
+        <h2 className="font-semibold text-sm text-fg-muted">{t.forecast.statsTitle}</h2>
         <div className="flex gap-2 text-xs">
           <ScopeButton
             active={scope === 'selected'}
@@ -530,14 +530,14 @@ function StatsCard({ eventIds, category }: { eventIds: number[]; category?: Cate
           />
         </div>
       </div>
-      <p className="text-xs text-slate-400">{t.forecast.statsHint}</p>
+      <p className="text-xs text-fg-subtle">{t.forecast.statsHint}</p>
 
       {isLoading && <Spinner />}
       {data && data.items.length === 0 && (
-        <div className="text-slate-400 text-sm">{t.forecast.statsEmpty}</div>
+        <div className="text-fg-subtle text-sm">{t.forecast.statsEmpty}</div>
       )}
 
-      <ul className="divide-y divide-slate-100">
+      <ul className="divide-y divide-line">
         {data?.items.map((it) => {
           const rows = byItem.get(it.item_id) ?? [];
           const open = openItem === it.item_id;
@@ -545,35 +545,35 @@ function StatsCard({ eventIds, category }: { eventIds: number[]; category?: Cate
           return (
             <li key={it.item_id} className="py-2">
               <button
-                className="w-full flex items-center justify-between gap-3 text-left"
+                className="w-full min-h-touch flex items-center justify-between gap-3 text-left"
                 onClick={() => setOpenItem(open ? null : it.item_id)}
               >
                 <span className="flex items-center gap-1 min-w-0">
                   {open ? (
-                    <ChevronDown className="w-4 h-4 shrink-0 text-slate-400" />
+                    <ChevronDown className="w-4 h-4 shrink-0 text-fg-subtle" />
                   ) : (
-                    <ChevronRight className="w-4 h-4 shrink-0 text-slate-400" />
+                    <ChevronRight className="w-4 h-4 shrink-0 text-fg-subtle" />
                   )}
                   <span className="font-medium truncate">{it.name}</span>
                 </span>
-                <span className="font-semibold text-slate-700 shrink-0">
+                <span className="font-semibold text-fg shrink-0 nums">
                   {fmtQty(it.total_unit, it.unit, it.pack_size, it.pack_unit)}
                 </span>
               </button>
               {open && (
-                <ul className="mt-1 ml-5 divide-y divide-slate-100 text-xs">
+                <ul className="mt-1 ml-5 divide-y divide-line text-xs">
                   {rows.map((r) => {
                     running += Number(r.maara_unit);
                     return (
                       <li key={`${r.event_id}`} className="flex justify-between gap-3 py-1.5">
-                        <span className="min-w-0 truncate text-slate-600">
+                        <span className="min-w-0 truncate text-fg-muted">
                           {r.event_name ?? t.forecast.noEvent}
                         </span>
-                        <span className="shrink-0 text-right">
-                          <span className="font-medium text-slate-700">
+                        <span className="shrink-0 text-right nums">
+                          <span className="font-medium text-fg">
                             {fmtQty(Number(r.maara_unit), it.unit, it.pack_size, it.pack_unit)}
                           </span>
-                          <span className="text-slate-400 block">
+                          <span className="text-fg-subtle block">
                             {t.forecast.cumulative}: {fmtQty(running, it.unit, it.pack_size, it.pack_unit)}
                           </span>
                         </span>
@@ -603,7 +603,7 @@ function ScopeButton({
     <button
       onClick={onClick}
       className={`rounded-lg px-2.5 py-1 font-medium border ${
-        active ? 'bg-brand text-white border-brand' : 'bg-white text-slate-500 border-slate-200'
+        active ? 'bg-brand text-brand-fg border-brand' : 'bg-surface text-fg-muted border-line'
       }`}
     >
       {label}
@@ -614,8 +614,8 @@ function ScopeButton({
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <span className="text-slate-400">{label}: </span>
-      <span className="font-medium text-slate-700">{value}</span>
+      <span className="text-fg-subtle">{label}: </span>
+      <span className="font-medium text-fg nums">{value}</span>
     </div>
   );
 }

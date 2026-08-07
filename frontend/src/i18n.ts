@@ -37,6 +37,7 @@ export const t = {
   // Yleiset, monessa paikassa käytetyt
   common: {
     back: 'Takaisin',
+    close: 'Sulje',
     backHome: 'Etusivu',
     edit: 'Muokkaa',
     save: 'Tallenna',

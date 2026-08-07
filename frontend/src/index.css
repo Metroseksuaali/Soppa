@@ -2,8 +2,70 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ==========================================================================
+   Väritokenit
+   Yksi totuuden lähde teemaväreille. Arvot ovat RGB-kanavia ilman rgb()-
+   kääreen, koska tailwind.config.js kääräisee ne muotoon
+   rgb(var(--c-x) / <alpha-value>) — näin bg-surface ja bg-brand/20 toimivat
+   molemmat. Uusi koodi käyttää VAIN semanttisia luokkia (bg-surface, text-fg,
+   border-line …), ei slate-*-värejä. Ks. DESIGN.md.
+   ========================================================================== */
 :root {
   color-scheme: light;
+
+  --c-bg: 246 247 249; /* sivun pohja */
+  --c-surface: 255 255 255; /* kortit, palkit, modaalit */
+  --c-surface-2: 241 243 246; /* hover, korostettu rivi, täyttö */
+  --c-line: 226 231 237; /* reunat, jakajat */
+  --c-line-strong: 203 211 221; /* kentän reuna, vahvempi jakaja */
+  --c-fg: 16 21 28; /* leipäteksti, otsikot */
+  --c-fg-muted: 92 102 114; /* toissijainen teksti */
+  --c-fg-subtle: 138 149 163; /* pikkuteksti, ikonit, placeholder */
+
+  /* Assemblyn ilme: violetti pääväri + teal-tehoste, ja näiden liukuväri
+     tunnuspinnoilla (logolaatta, kirjautuminen). Ks. DESIGN.md. */
+  --c-brand: 124 58 237; /* täyttö: napit */
+  --c-brand-fg: 255 255 255; /* teksti brand-täytön päällä */
+  --c-brand-ink: 109 40 217; /* brandin värinen teksti tavallisella pinnalla */
+  --c-brand-hover: 109 40 217;
+  --c-brand-soft: 237 233 254; /* sävypinta: aktiivinen navilinkki, merkit */
+  --c-accent: 13 148 136; /* teal-tehoste: liukuvärin toinen pää, korostukset */
+  --c-accent-ink: 15 118 110;
+  --c-accent-soft: 204 251 241;
+  --g-from: 124 58 237; /* liukuvärin päät (kirkkaammat kuin täyttövärit) */
+  --g-to: 20 184 166;
+
+  /* Mitta, ei väri: mobiilin alapalkin korkeus (Layout.tsx ruudukko h-16 +
+     1px yläreuna). Käytetään .above-bottom-nav-apuluokassa. */
+  --nav-h: calc(4rem + 1px);
+}
+
+:root.dark {
+  color-scheme: dark;
+
+  --c-bg: 11 15 20;
+  --c-surface: 20 26 33;
+  --c-surface-2: 28 36 46;
+  --c-line: 38 47 58;
+  --c-line-strong: 55 67 81;
+  --c-fg: 232 237 243;
+  --c-fg-muted: 154 167 181;
+  --c-fg-subtle: 107 119 135;
+
+  /* Täyttöväri pidetään tummassa teemassa samana violettina, jotta valkoinen
+     teksti sen päällä säilyttää kontrastin; tekstivärit vaalenevat. */
+  --c-brand: 124 58 237;
+  --c-brand-fg: 255 255 255;
+  /* Tekstiväri vaalenee reilusti: sama violetti jolla täyttö tehdään on
+     lukukelvoton tekstinä lähes mustaa vasten. */
+  --c-brand-ink: 196 181 253;
+  --c-brand-hover: 139 92 246;
+  --c-brand-soft: 47 35 88;
+  --c-accent: 13 148 136;
+  --c-accent-ink: 94 234 212;
+  --c-accent-soft: 17 61 57;
+  --g-from: 139 92 246;
+  --g-to: 45 212 191;
 }
 
 html,
@@ -14,97 +76,88 @@ body,
 
 body {
   margin: 0;
-  background: #f1f5f9;
+  background: rgb(var(--c-bg));
+  color: rgb(var(--c-fg));
   -webkit-tap-highlight-color: transparent;
+  -webkit-font-smoothing: antialiased;
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
 }
 
 @layer components {
+  /* --- Napit: kompakti ulkoasu, mutta aina >=44px kosketusala --- */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-3 font-semibold text-base transition active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3.5 min-h-touch text-sm font-semibold
+      transition-colors active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none
+      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40;
   }
   .btn-primary {
-    @apply btn bg-brand text-white hover:bg-brand-dark;
+    @apply btn bg-brand text-brand-fg hover:bg-brand-dark;
   }
   .btn-secondary {
-    @apply btn bg-white text-slate-700 border border-slate-300 hover:bg-slate-50;
+    @apply btn bg-surface text-fg border border-line-strong hover:bg-surface-2;
   }
   .btn-danger {
     @apply btn bg-red-600 text-white hover:bg-red-700;
   }
+  /* Tiheisiin riveihin ja korttien nurkkiin — ei täytä 44px:ää, joten älä
+     käytä ensisijaisiin mobiilitoimintoihin. */
+  .btn-sm {
+    @apply min-h-0 h-9 px-2.5 text-xs;
+  }
+
+  /* HUOM: mobiilissa 16px (text-base) on pakko — iOS Safari zoomaa kenttään
+     jonka fontti on alle 16px. Työpöydällä tiheämpi 14px. */
   .input {
-    @apply w-full rounded-xl border border-slate-300 px-4 py-3 text-base outline-none focus:border-brand focus:ring-2 focus:ring-brand/30;
+    @apply w-full rounded-lg border border-line-strong bg-surface text-fg px-3 py-2.5 min-h-touch
+      text-base sm:text-sm
+      outline-none placeholder:text-fg-subtle focus:border-brand focus:ring-2 focus:ring-brand/25;
   }
   .label {
-    @apply block text-sm font-medium text-slate-600 mb-1;
+    @apply block text-xs font-medium text-fg-muted mb-1;
   }
+
+  /* --- Pinnat: reuna erottaa kortin, ei varjo (varjo katoaa tummassa) --- */
   .card {
-    @apply bg-white rounded-2xl shadow-sm border border-slate-200;
+    @apply bg-surface rounded-xl border border-line;
   }
   .chip {
-    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+    @apply inline-flex items-center rounded-md px-2 py-0.5 text-2xs font-semibold;
+  }
+  /* Osion pikkuotsikko listojen ja korttiryhmien yllä. */
+  .section-title {
+    @apply text-2xs font-semibold uppercase tracking-wider text-fg-subtle;
   }
 }
 
-/* ==========================================================================
-   Tumma teema
-   Aktivoituu kun <html>-elementillä on luokka "dark" (asetetaan index.htmlssä
-   ja Layoutin vaihtonapissa). Ylikirjoitukset osuvat suoraan käytettyihin
-   neutraaleihin Tailwind-luokkiin — värilliset chipit/ilmoitukset jäävät
-   tarkoituksella kirkkaiksi korostuksiksi. Luokat ovat kerroksettomia (ei
-   @layer), joten ne voittavat Tailwindin utilities-kerroksen.
-   ========================================================================== */
-:root.dark {
-  color-scheme: dark;
-}
+@layer utilities {
+  /* Assembly-liukuväri. Vain tunnuspinnoille (logolaatta, kirjautumisen
+     otsikko) — ei napeille, korteille eikä palkeille. */
+  .bg-brand-gradient {
+    background-image: linear-gradient(135deg, rgb(var(--g-from)), rgb(var(--g-to)));
+  }
+  /* Liukuväri tekstissä. Vain isoille otsikoille: leikattu väri ei kunnioita
+     kontrastisääntöjä pienessä koossa. */
+  .text-brand-gradient {
+    background-image: linear-gradient(115deg, rgb(var(--g-from)), rgb(var(--g-to)));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
 
-.dark body {
-  background: #0f172a;
-  color: #e2e8f0;
-}
-
-/* Pinnat */
-.dark .bg-white { background-color: #1e293b !important; }
-.dark .bg-slate-50 { background-color: #334155 !important; }
-.dark .bg-slate-100 { background-color: #0f172a !important; }
-.dark .bg-slate-200 { background-color: #334155 !important; }
-
-/* Tekstivärit */
-.dark .text-slate-800 { color: #f8fafc !important; }
-.dark .text-slate-700 { color: #e2e8f0 !important; }
-.dark .text-slate-600 { color: #cbd5e1 !important; }
-.dark .text-slate-500 { color: #94a3b8 !important; }
-.dark .text-slate-400 { color: #64748b !important; }
-
-/* Reunat */
-.dark .border-slate-100 { border-color: #334155 !important; }
-.dark .border-slate-200 { border-color: #334155 !important; }
-.dark .border-slate-300 { border-color: #475569 !important; }
-.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) {
-  border-color: #334155 !important;
-}
-
-/* Komponenttiluokat (@apply paistaa arvot sisään -> ylikirjoitettava erikseen) */
-.dark .card {
-  background-color: #1e293b;
-  border-color: #334155;
-}
-.dark .input {
-  background-color: #1e293b;
-  border-color: #475569;
-  color: #e2e8f0;
-}
-.dark .input::placeholder {
-  color: #64748b;
-}
-.dark .label {
-  color: #94a3b8;
-}
-.dark .btn-secondary {
-  background-color: #1e293b;
-  color: #e2e8f0;
-  border-color: #475569;
-}
-.dark .btn-secondary:hover {
-  background-color: #334155;
+  /* Määrät ja päivämäärät listoissa: samanleveät numerot pitävät sarakkeet
+     suorassa. */
+  .nums {
+    font-variant-numeric: tabular-nums;
+  }
+  /* iOS:n kotipainikkeen alue (index.html: viewport-fit=cover). */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  /* Kiinnitä elementti heti mobiilin alapalkin päälle. --nav-h on alapalkin
+     ruudukon korkeus (Layout.tsx: h-16) + 1px yläreuna; turva-alue tulee
+     päälle, jotta baari ei jää iPhonen kotipainikkeen alle. Jos alapalkin
+     korkeus muuttuu, muuta --nav-h samalla. */
+  .above-bottom-nav {
+    bottom: calc(var(--nav-h) + env(safe-area-inset-bottom, 0px));
+  }
 }

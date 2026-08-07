@@ -47,7 +47,7 @@ export function ItemDetailPage() {
 
   return (
     <div className="space-y-4 md:max-w-2xl">
-      <Link to={backTo} className="inline-flex items-center gap-1 text-brand text-sm font-medium">
+      <Link to={backTo} className="inline-flex items-center gap-1 text-brand-ink text-sm font-medium">
         <ArrowLeft className="w-4 h-4" />
         {t.common.back}
       </Link>
@@ -59,11 +59,13 @@ export function ItemDetailPage() {
             <div className="flex items-center gap-2 mt-1 flex-wrap">
               <CategoryChip category={data.category} />
               {data.returnable ? (
-                <span className="chip bg-teal-100 text-teal-800">{t.common.returnable}</span>
+                <span className="chip bg-accent-soft text-accent-ink">{t.common.returnable}</span>
               ) : (
-                <span className="chip bg-slate-100 text-slate-600">{t.common.consumable}</span>
+                <span className="chip bg-surface-2 text-fg-muted">{t.common.consumable}</span>
               )}
-              {data.archived && <span className="chip bg-red-100 text-red-700">{t.item.archived}</span>}
+              {data.archived && (
+                <span className="chip bg-red-500/10 text-red-700 dark:text-red-300">{t.item.archived}</span>
+              )}
             </div>
           </div>
           <button className="btn-secondary py-2 px-3 text-sm" onClick={() => setShowEdit(true)}>
@@ -71,14 +73,18 @@ export function ItemDetailPage() {
           </button>
         </div>
 
-        <div className="mt-4 rounded-xl bg-slate-50 p-4 text-center">
-          <div className="text-sm text-slate-500">{t.common.stock}</div>
-          <div className={`text-3xl font-bold ${data.stock <= 0 ? 'text-red-600' : 'text-slate-800'}`}>
+        <div className="mt-4 rounded-xl bg-surface-2 p-4 text-center">
+          <div className="text-sm text-fg-muted">{t.common.stock}</div>
+          <div
+            className={`text-3xl font-bold nums ${
+              data.stock <= 0 ? 'text-red-600 dark:text-red-400' : 'text-fg'
+            }`}
+          >
             {fmtQty(data.stock, data.unit, data.pack_size, data.pack_unit)}
           </div>
         </div>
 
-        {data.note && <p className="mt-3 text-sm text-slate-500">{data.note}</p>}
+        {data.note && <p className="mt-3 text-sm text-fg-muted">{data.note}</p>}
 
         <div className="mt-4 flex gap-2">
           <Link to={`/kirjaa?item=${data.id}`} className="btn-primary flex-1 py-2 text-sm">
@@ -108,11 +114,11 @@ export function ItemDetailPage() {
       {data.returnable && data.locations.length > 0 && (
         <div className="card p-4">
           <h2 className="font-semibold mb-2">{t.item.outAtLocations}</h2>
-          <ul className="divide-y divide-slate-100">
+          <ul className="divide-y divide-line">
             {data.locations.map((l) => (
               <li key={l.location_id} className="flex justify-between py-2 text-sm">
                 <span>{l.location_name}</span>
-                <span className="font-semibold">{fmtQty(l.qty, data.unit, data.pack_size, data.pack_unit)}</span>
+                <span className="font-semibold nums">{fmtQty(l.qty, data.unit, data.pack_size, data.pack_unit)}</span>
               </li>
             ))}
           </ul>
@@ -121,37 +127,39 @@ export function ItemDetailPage() {
 
       <div className="card p-4">
         <h2 className="font-semibold mb-2">{t.item.history}</h2>
-        {data.history.length === 0 && <div className="text-slate-400 text-sm">{t.item.noHistory}</div>}
-        <ul className="divide-y divide-slate-100">
+        {data.history.length === 0 && <div className="text-fg-subtle text-sm">{t.item.noHistory}</div>}
+        <ul className="divide-y divide-line">
           {data.history.map((m) => (
             <li key={m.id} className={`py-2.5 ${m.voided ? 'opacity-50' : ''}`}>
               <div className="flex justify-between items-start gap-2">
                 <div className="min-w-0">
                   <div className="font-medium text-sm">
                     {t.movementTypes[m.type]}
-                    {m.location_name && <span className="text-slate-400"> · {m.location_name}</span>}
+                    {m.location_name && <span className="text-fg-subtle"> · {m.location_name}</span>}
                     {m.sponsored && (
-                      <span className="chip bg-violet-100 text-violet-800 ml-2">{t.forecast.sponsoredTag}</span>
+                      <span className="chip bg-violet-500/10 text-violet-700 dark:text-violet-300 ml-2">
+                        {t.forecast.sponsoredTag}
+                      </span>
                     )}
-                    {m.voided && <span className="text-red-500 ml-1">{t.item.voided}</span>}
+                    {m.voided && <span className="text-red-500 dark:text-red-400 ml-1">{t.item.voided}</span>}
                   </div>
-                  <div className="text-xs text-slate-400">
+                  <div className="text-xs text-fg-subtle nums">
                     {fmtDateTime(m.created_at)} · {m.user_name}
                     {m.event_name && ` · ${m.event_name}`}
                   </div>
                   {m.type === 'inventointi' && m.counted != null && (
-                    <div className="text-xs text-slate-500">{t.item.counted(`${fmtNum(m.counted)} ${m.unit}`)}</div>
+                    <div className="text-xs text-fg-muted nums">{t.item.counted(`${fmtNum(m.counted)} ${m.unit}`)}</div>
                   )}
-                  {m.note && <div className="text-xs text-slate-500 italic">{m.note}</div>}
+                  {m.note && <div className="text-xs text-fg-muted italic">{m.note}</div>}
                 </div>
                 <div className="text-right shrink-0">
-                  <div className="font-semibold text-sm">
+                  <div className="font-semibold text-sm nums">
                     {typeSign(m.type)}
                     {fmtNum(Math.abs(m.quantity))} {m.unit}
                   </div>
                   {!m.voided && (
                     <button
-                      className="text-xs text-red-500 mt-1"
+                      className="text-xs text-red-500 dark:text-red-400 mt-1"
                       onClick={() => {
                         if (confirm(t.item.voidConfirm)) voidMut.mutate(m.id);
                       }}
@@ -212,14 +220,14 @@ function BarcodeCard({ itemId, barcodes }: { itemId: number; barcodes: Barcode[]
       </div>
 
       {barcodes.length === 0 ? (
-        <div className="text-sm text-slate-400">{t.barcode.none}</div>
+        <div className="text-sm text-fg-subtle">{t.barcode.none}</div>
       ) : (
-        <ul className="divide-y divide-slate-100">
+        <ul className="divide-y divide-line">
           {barcodes.map((b) => (
             <li key={b.code} className="flex items-center justify-between py-2">
-              <span className="font-mono text-sm">{b.code}</span>
+              <span className="font-mono text-sm nums">{b.code}</span>
               <button
-                className="text-slate-400 p-1"
+                className="inline-flex items-center justify-center h-touch w-touch rounded-lg text-fg-subtle hover:bg-surface-2 transition-colors"
                 aria-label={t.barcode.remove}
                 title={t.barcode.remove}
                 disabled={remove.isPending}
@@ -234,8 +242,8 @@ function BarcodeCard({ itemId, barcodes }: { itemId: number; barcodes: Barcode[]
         </ul>
       )}
 
-      <p className="text-xs text-slate-400 mt-2">{t.barcode.hint}</p>
-      {msg && <div className="mt-2 text-sm text-teal-700">{msg}</div>}
+      <p className="text-xs text-fg-subtle mt-2">{t.barcode.hint}</p>
+      {msg && <div className="mt-2 text-sm text-emerald-700 dark:text-emerald-300">{msg}</div>}
       {add.error && <div className="mt-2"><ErrorMsg error={add.error} /></div>}
       {remove.error && <div className="mt-2"><ErrorMsg error={remove.error} /></div>}
     </div>
@@ -336,7 +344,7 @@ function EditItemModal({ open, onClose, item }: { open: boolean; onClose: () => 
             ))}
           </select>
           {groupMismatch && (
-            <p className="text-xs text-amber-700 mt-1">
+            <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
               {t.itemForm.groupIncompatible(chosenGroup!.base_unit)}
             </p>
           )}

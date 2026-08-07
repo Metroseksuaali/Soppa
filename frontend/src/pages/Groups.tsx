@@ -38,12 +38,12 @@ export function GroupsPage() {
 
   return (
     <div className="space-y-4 md:max-w-2xl">
-      <Link to="/" className="inline-flex items-center gap-1 text-brand text-sm font-medium">
+      <Link to="/" className="inline-flex items-center gap-1 text-brand-ink text-sm font-medium">
         <ArrowLeft className="w-4 h-4" />
         {t.common.backHome}
       </Link>
       <h1 className="text-xl font-bold">{t.groups.title}</h1>
-      <p className="text-sm text-slate-500">{t.groups.intro}</p>
+      <p className="text-sm text-fg-muted">{t.groups.intro}</p>
 
       <div className="card p-4 space-y-2">
         <input
@@ -75,13 +75,13 @@ export function GroupsPage() {
             {t.common.create}
           </button>
         </div>
-        <p className="text-xs text-slate-400">{t.groups.baseUnitHint}</p>
+        <p className="text-xs text-fg-subtle">{t.groups.baseUnitHint}</p>
       </div>
       {createMut.error && <ErrorMsg error={createMut.error} />}
 
       {isLoading && <Spinner />}
       {error && <ErrorMsg error={error} />}
-      {data?.length === 0 && <div className="text-slate-400 text-sm">{t.groups.empty}</div>}
+      {data?.length === 0 && <div className="text-fg-subtle text-sm">{t.groups.empty}</div>}
 
       <ul className="space-y-2">
         {data?.map((g) => (
@@ -120,17 +120,17 @@ function GroupCard({
       <div className="flex items-start justify-between gap-3">
         <button className="flex items-start gap-1 min-w-0 text-left" onClick={() => setOpen(!open)}>
           {open ? (
-            <ChevronDown className="w-4 h-4 shrink-0 mt-1 text-slate-400" />
+            <ChevronDown className="w-4 h-4 shrink-0 mt-1 text-fg-subtle" />
           ) : (
-            <ChevronRight className="w-4 h-4 shrink-0 mt-1 text-slate-400" />
+            <ChevronRight className="w-4 h-4 shrink-0 mt-1 text-fg-subtle" />
           )}
           <span className="min-w-0">
             <span className="font-semibold flex items-center gap-2 flex-wrap">
               {group.name}
-              <span className="chip bg-slate-100 text-slate-700">{group.base_unit}</span>
-              {!group.active && <span className="chip bg-slate-200 text-slate-600">{t.groups.hiddenTag}</span>}
+              <span className="chip bg-surface-2 text-fg">{group.base_unit}</span>
+              {!group.active && <span className="chip bg-surface-2 text-fg-muted">{t.groups.hiddenTag}</span>}
             </span>
-            <span className="text-xs text-slate-400 block mt-0.5">
+            <span className="text-xs text-fg-subtle block mt-0.5 nums">
               {t.groups.itemCount(group.item_count)}
               {group.incompatible_count > 0 && ` · ${t.groups.incompatibleCount(group.incompatible_count)}`}
             </span>
@@ -138,7 +138,7 @@ function GroupCard({
         </button>
         <div className="flex gap-3 text-sm shrink-0">
           <button
-            className="text-brand font-medium"
+            className="text-brand-ink font-medium"
             onClick={() => {
               const next = prompt(t.groups.rename, group.name);
               if (next && next.trim() && next.trim() !== group.name) onRename(next.trim());
@@ -146,7 +146,7 @@ function GroupCard({
           >
             {t.groups.rename}
           </button>
-          <button className="text-slate-500 font-medium" onClick={onToggleActive}>
+          <button className="text-fg-muted font-medium" onClick={onToggleActive}>
             {group.active ? t.groups.hide : t.groups.show}
           </button>
         </div>
@@ -154,22 +154,22 @@ function GroupCard({
 
       {open && (
         <div className="mt-3">
-          <div className="text-xs font-semibold text-slate-500 mb-1">{t.groups.members}</div>
-          {members?.length === 0 && <div className="text-sm text-slate-400">{t.groups.noMembers}</div>}
-          <ul className="divide-y divide-slate-100 text-sm">
+          <div className="text-xs font-semibold text-fg-muted mb-1">{t.groups.members}</div>
+          {members?.length === 0 && <div className="text-sm text-fg-subtle">{t.groups.noMembers}</div>}
+          <ul className="divide-y divide-line text-sm">
             {members?.map((m) => (
               <li key={m.id} className="flex justify-between gap-3 py-1.5">
-                <Link to={`/inventaario/${m.id}`} className="min-w-0 truncate text-slate-700">
+                <Link to={`/inventaario/${m.id}`} className="min-w-0 truncate text-fg">
                   {m.name}
                 </Link>
                 <span className="shrink-0 text-xs">
                   {m.factor === null ? (
-                    <span className="text-amber-700 inline-flex items-center gap-1">
+                    <span className="text-amber-700 dark:text-amber-300 inline-flex items-center gap-1">
                       <AlertTriangle className="w-3.5 h-3.5" />
                       {t.groups.factorMissing}
                     </span>
                   ) : (
-                    <span className="text-slate-400">
+                    <span className="text-fg-subtle nums">
                       {t.groups.factor(m.unit, fmtNum(m.factor), group.base_unit)}
                     </span>
                   )}
