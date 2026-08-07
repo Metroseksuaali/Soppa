@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { api, Barcode, ItemDetail, ItemGroup } from '../api';
 import { Spinner, ErrorMsg, Modal, CategoryChip } from '../components/ui';
@@ -14,9 +14,25 @@ export function ItemDetailPage() {
   const navigate = useNavigate();
   const qc = useQueryClient();
   const [showEdit, setShowEdit] = useState(false);
-  // Listaus antoi mukaan kategoriavälilehden ja haun — palataan siihen näkymään, ei alkuun.
+  const location = useLocation();
+  // Tuotesivulle tullaan kolmesta paikasta: inventaariolistauksesta, etusivun
+  // loppu-listasta ja tuoteryhmän jäsenlistasta. Siksi paluu nojaa selaimen
+  // historiaan — se tietää oikean paluukohteen myös uusista tulokohdista, ja
+  // palauttaa listauksen tarkan tilan (välilehti + haku) ilman erillistä
+  // kirjanpitoa. Varasuunta on inventaario: listauksesta tultaessa osoitteessa
+  // ovat suodattimet mukana, ja key === 'default' tarkoittaa ettei tässä
+  // istunnossa ole mihin palata (suora linkki tai sivun uudelleenlataus).
   const [listParams] = useSearchParams();
   const backTo = `/inventaario${listParams.toString() ? `?${listParams}` : ''}`;
+  const canGoBack = location.key !== 'default';
+
+  // Modifier-klikit (uusi välilehti) jätetään selaimelle — siksi vain paljas
+  // vasen klikkaus kaapataan historiapaluuksi.
+  function onBackClick(e: React.MouseEvent) {
+    if (!canGoBack || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+    e.preventDefault();
+    navigate(-1);
+  }
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['item', id],
@@ -47,7 +63,11 @@ export function ItemDetailPage() {
 
   return (
     <div className="space-y-4 md:max-w-2xl">
-      <Link to={backTo} className="inline-flex items-center gap-1 text-brand-ink text-sm font-medium">
+      <Link
+        to={backTo}
+        onClick={onBackClick}
+        className="inline-flex items-center gap-1 text-brand-ink text-sm font-medium"
+      >
         <ArrowLeft className="w-4 h-4" />
         {t.common.back}
       </Link>
